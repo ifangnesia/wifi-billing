@@ -475,6 +475,9 @@
             const totalTagihan = formatRupiah(tx.nominal);
             const namaClient = tx.namaClient;
             const periodeTagihan = formatBulanIndo(tx.tanggalTransaksi);
+            
+            // Ambil paket langganan secara dinamis
+            const namaPaket = client && client.paket ? "Biaya Langganan " + client.paket : "Biaya Koneksi Internet";
 
             const printHtml = `
             <!DOCTYPE html>
@@ -560,7 +563,7 @@
                         <th class="text-right">Total (Rupiah)</th>
                     </tr>
                     <tr>
-                        <td class="text-left">Biaya Koneksi Internet 20 Mbps</td>
+                        <td class="text-left">${namaPaket}</td>
                         <td id="inv-periode">${periodeTagihan}</td>
                         <td>1 Bulan</td>
                         <td class="text-right" id="inv-nominal">${totalTagihan}</td>
