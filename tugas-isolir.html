@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tugas Isolir - Wi-Fi Billing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased flex h-screen overflow-hidden">
+
+    <!-- Mobile Header & Hamburger -->
+    <div class="md:hidden fixed w-full bg-white shadow-sm z-50 flex items-center justify-between p-4">
+        <div class="text-lg font-bold text-purple-600">Wi-Fi Billing</div>
+        <button id="menu-btn" class="text-gray-600 hover:text-gray-900 focus:outline-none">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="bg-white w-[250px] h-full border-r border-gray-200 flex flex-col absolute md:relative z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out pt-16 md:pt-0 shrink-0">
+        <!-- Sidebar Header (Desktop) -->
+        <div class="hidden md:flex items-center justify-center h-16 border-b border-gray-200 shrink-0">
+            <img src="PURPLEIFANGNESIA.PNG" alt="Logo" class="h-8 w-auto">
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="kelola-pelanggan.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                </svg>
+                <span>Kelola Pelanggan</span>
+            </a>
+            <a href="input-pembayaran.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                </svg>
+                <span>Input Pembayaran</span>
+            </a>
+            <a href="tugas-isolir.html" class="flex items-center gap-3 px-4 py-3 bg-purple-50 text-gray-900 font-bold rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
+                </svg>
+                <span>Tugas Isolir</span>
+            </a>
+            <a href="riwayat-transaksi.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+                <span>Riwayat Transaksi</span>
+            </a>
+        </nav>
+        <!-- Footer -->
+        <div class="p-4 border-t border-gray-200 mt-auto shrink-0">
+            <a href="login.html" class="block text-red-500 font-bold hover:text-red-700 cursor-pointer">KELUAR</a>
+        </div>
+    </aside>
+
+    <!-- Overlay for mobile sidebar -->
+    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden pt-16 md:pt-0">
+        
+        <!-- Topbar / Header Atas -->
+        <header class="bg-white shadow-sm px-8 py-5 shrink-0 z-10 relative flex justify-between items-center">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">Tugas Isolir</h2>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-8">
+            
+            <!-- Tabel Isolir -->
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-max">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200 text-sm text-gray-600">
+                                <th class="py-3 px-4 font-medium w-16">No</th>
+                                <th class="py-3 px-4 font-medium">ID Client</th>
+                                <th class="py-3 px-4 font-medium">Nama Pelanggan</th>
+                                <th class="py-3 px-4 font-medium">ODP</th>
+                                <th class="py-3 px-4 font-medium">Tanggal Jatuh Tempo</th>
+                                <th class="py-3 px-4 font-medium">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm text-gray-700">
+                            <tr>
+                                <td colspan="6" class="py-4 text-center italic text-gray-500">Belum ada tugas isolir</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- JavaScript -->
+    <script>
+        // Konfigurasi Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzXiIDFpYYP56ynQjStCT4bV9IcGl4kXI",
+            authDomain: "e-billingthom.firebaseapp.com",
+            projectId: "e-billingthom",
+            storageBucket: "e-billingthom.firebasestorage.app",
+            messagingSenderId: "450682516112",
+            appId: "1:450682516112:web:0c3f64868be3a6c7c76215"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Sidebar Toggle Mobile
+        const menuBtn = document.getElementById('menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        menuBtn.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', toggleSidebar);
+
+        // Fungsi Kirim WA
+        function kirimWA() {
+            // Munculkan notifikasi alert bawaan browser
+            alert("Tindakan berhasil: Pesan tagihan telah dikirim ke klien.");
+        }
+
+        // Fungsi Matikan Koneksi / Konfirmasi Isolir
+        function matikanKoneksi(idDoc) {
+            if (confirm("Konfirmasi: Apakah akses internet untuk klien ini sudah dimatikan di MikroTik?")) {
+                db.collection('pelanggan').doc(idDoc).update({
+                    isIsolir: true
+                }).catch((error) => {
+                    console.error("Error updating document: ", error);
+                    alert("Gagal memperbarui status pelanggan");
+                });
+            }
+        }
+
+        function formatTanggalPendek(dateString) {
+            if(!dateString) return '-';
+            const date = new Date(dateString);
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            return date.toLocaleDateString('id-ID', options);
+        }
+
+        let dataPelanggan = [];
+
+        db.collection('pelanggan').onSnapshot((snapshot) => {
+            dataPelanggan = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                data.idDoc = doc.id;
+                dataPelanggan.push(data);
+            });
+            renderTable();
+        });
+
+        function renderTable() {
+            const tbody = document.querySelector('tbody');
+            
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            // Filter H-3 and overdue
+            const tugasData = dataPelanggan.filter(p => {
+                if(!p.jatuhTempo) return false;
+                const jtDate = new Date(p.jatuhTempo);
+                jtDate.setHours(0,0,0,0);
+                
+                const diffTime = jtDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                return diffDays <= 3;
+            });
+
+            // Sort ascending by jatuh tempo (closest first)
+            tugasData.sort((a,b) => new Date(a.jatuhTempo) - new Date(b.jatuhTempo));
+
+            tbody.innerHTML = '';
+            
+            if (tugasData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center italic text-gray-500">Belum ada tugas isolir</td></tr>';
+                return;
+            }
+
+            tugasData.forEach((p, index) => {
+                const btnIsolirHtml = (p.isIsolir === true) 
+                    ? `<button class="bg-gray-400 text-white px-3 py-1 rounded cursor-not-allowed" disabled>Terisolir</button>`
+                    : `<button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded" onclick="matikanKoneksi('${p.idDoc}')">Matikan Koneksi</button>`;
+
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-100 hover:bg-gray-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="py-3 px-4">${index + 1}</td>
+                    <td class="py-3 px-4 font-medium text-purple-700">${p.idClient}</td>
+                    <td class="py-3 px-4 font-medium">${p.nama}</td>
+                    <td class="py-3 px-4">ODP ${p.odp}</td>
+                    <td class="py-3 px-4 text-red-600 font-medium">${formatTanggalPendek(p.jatuhTempo)}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <button class="bg-green-500 hover:bg-green-600 text-white font-medium py-1.5 px-3 rounded text-xs transition-colors shrink-0" onclick="kirimWA()">
+                                Kirim WA
+                            </button>
+                            ${btnIsolirHtml}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>

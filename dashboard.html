@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Sales - Wi-Fi Billing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased flex h-screen overflow-hidden">
+
+    <!-- Mobile Header & Hamburger -->
+    <div class="md:hidden fixed w-full bg-white shadow-sm z-50 flex items-center justify-between p-4">
+        <div class="text-lg font-bold text-purple-600">Wi-Fi Billing</div>
+        <button id="menu-btn" class="text-gray-600 hover:text-gray-900 focus:outline-none">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="bg-white w-[250px] h-full border-r border-gray-200 flex flex-col absolute md:relative z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out pt-16 md:pt-0 shrink-0">
+        <!-- Sidebar Header (Desktop) -->
+        <div class="hidden md:flex items-center justify-center h-16 border-b border-gray-200 shrink-0">
+            <img src="PURPLEIFANGNESIA.PNG" alt="Logo" class="h-8 w-auto">
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 bg-purple-50 text-gray-900 font-bold rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="kelola-pelanggan.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                </svg>
+                <span>Kelola Pelanggan</span>
+            </a>
+            <a href="input-pembayaran.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                </svg>
+                <span>Input Pembayaran</span>
+            </a>
+            <a href="tugas-isolir.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
+                </svg>
+                <span>Tugas Isolir</span>
+            </a>
+            <a href="riwayat-transaksi.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+                <span>Riwayat Transaksi</span>
+            </a>
+        </nav>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-gray-200 mt-auto shrink-0">
+            <a href="login.html" class="block text-red-500 font-bold hover:text-red-700 cursor-pointer">KELUAR</a>
+        </div>
+    </aside>
+
+    <!-- Overlay for mobile sidebar -->
+    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden pt-16 md:pt-0">
+        
+        <!-- Topbar / Header Atas -->
+        <header class="bg-white shadow-sm px-8 py-5 shrink-0 z-10 relative flex justify-between items-center">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">Selamat Datang, Admin</h2>
+                <p class="text-sm text-gray-500 mt-1">Ringkasan performa hari ini</p>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="flex-1 overflow-y-auto p-8">
+            <!-- Grid Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                
+                <!-- Card 1: Pendapatan Hari Ini -->
+                <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-200 border-l-4 border-green-500 flex flex-col justify-center">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Pendapatan Hari Ini</h3>
+                    <p id="total-pendapatan" class="text-3xl font-bold text-gray-800 mt-2">Rp 0</p>
+                </div>
+
+                <!-- Card 2: Pendapatan Bulan Ini -->
+                <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-200 border-l-4 border-blue-500 flex flex-col justify-center">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Pendapatan Bulan Ini</h3>
+                    <p id="total-pendapatan-bulan" class="text-3xl font-bold text-gray-800 mt-2">Rp 0</p>
+                </div>
+
+                <!-- Card 3: Peringatan (H-3 Jatuh Tempo) -->
+                <div class="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-200 border-l-4 border-amber-500 flex flex-col justify-center">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">H-3 Jatuh Tempo</h3>
+                    <p class="text-3xl font-bold text-gray-800 mt-2"><span id="total-h3">0</span> <span class="text-lg font-medium text-gray-500">Pelanggan</span></p>
+                </div>
+
+                <!-- Card 4: Tindakan (Tugas Isolir) -->
+                <div onclick="window.location.href='tugas-isolir.html';" class="bg-white rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-200 border-l-4 border-red-500 flex flex-col justify-center cursor-pointer group">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide group-hover:text-red-500 transition-colors">Tugas Isolir</h3>
+                    <p class="text-3xl font-bold text-gray-800 mt-2"><span id="total-isolir">0</span> <span class="text-lg font-medium text-gray-500 group-hover:text-red-400 transition-colors">Pelanggan</span></p>
+                </div>
+
+            </div>
+
+            <!-- Tabel Riwayat Transaksi -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mt-8 overflow-hidden">
+                <h3 class="text-lg font-semibold mb-4 text-gray-800">Riwayat Input Terbaru</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-max">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200 text-sm text-gray-600">
+                                <th class="py-3 px-4 font-medium">Tanggal</th>
+                                <th class="py-3 px-4 font-medium">Nama Pelanggan</th>
+                                <th class="py-3 px-4 font-medium">Nominal</th>
+                                <th class="py-3 px-4 font-medium">Metode</th>
+                                <th class="py-3 px-4 font-medium">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-riwayat" class="text-sm text-gray-700">
+                            <tr><td colspan="5" class="py-4 text-center text-sm text-gray-500 italic">Belum ada data transaksi hari ini</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- JavaScript -->
+    <script>
+        // Konfigurasi Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzXiIDFpYYP56ynQjStCT4bV9IcGl4kXI",
+            authDomain: "e-billingthom.firebaseapp.com",
+            projectId: "e-billingthom",
+            storageBucket: "e-billingthom.firebasestorage.app",
+            messagingSenderId: "450682516112",
+            appId: "1:450682516112:web:0c3f64868be3a6c7c76215"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Sidebar Toggle Mobile
+        const menuBtn = document.getElementById('menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        menuBtn.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', toggleSidebar);
+
+        // Data array
+        let dataPelanggan = [];
+        let dataTransaksi = [];
+
+        // Elements
+        const elTotalHariIni = document.getElementById('total-pendapatan');
+        const elTotalBulanIni = document.getElementById('total-pendapatan-bulan');
+        const elTotalH3 = document.getElementById('total-h3');
+        const elTotalIsolir = document.getElementById('total-isolir');
+        const tbodyRiwayat = document.getElementById('tabel-riwayat');
+
+        db.collection('pelanggan').onSnapshot((snapshot) => {
+            dataPelanggan = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                data.idDoc = doc.id;
+                dataPelanggan.push(data);
+            });
+            hitungMetrik();
+        });
+
+        db.collection('transaksi').onSnapshot((snapshot) => {
+            dataTransaksi = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                data.idDoc = doc.id;
+                dataTransaksi.push(data);
+            });
+            hitungMetrik();
+            renderTabelTerbaru();
+        });
+
+        function formatRupiah(angka) {
+            return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        function formatTanggalPendek(dateString) {
+            if(!dateString) return '-';
+            const date = new Date(dateString);
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            return date.toLocaleDateString('id-ID', options);
+        }
+
+        function hitungMetrik() {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            
+            today.setHours(0,0,0,0);
+
+            let pendapatanHariIni = 0;
+            let pendapatanBulanIni = 0;
+
+            dataTransaksi.forEach(tx => {
+                if (tx.tanggalTransaksi === todayStr) {
+                    pendapatanHariIni += tx.nominal;
+                }
+                
+                if (tx.tanggalTransaksi) {
+                    const txDate = new Date(tx.tanggalTransaksi);
+                    if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+                        pendapatanBulanIni += tx.nominal;
+                    }
+                }
+            });
+
+            elTotalHariIni.textContent = formatRupiah(pendapatanHariIni);
+            elTotalBulanIni.textContent = formatRupiah(pendapatanBulanIni);
+
+            let countH3 = 0;
+            let countIsolir = 0;
+
+            dataPelanggan.forEach(p => {
+                if(!p.jatuhTempo) return;
+                const jtDate = new Date(p.jatuhTempo);
+                jtDate.setHours(0,0,0,0);
+                
+                const diffTime = jtDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                
+                if (diffDays < 0 || p.isIsolir === true) {
+                    countIsolir++;
+                } else if (diffDays >= 1 && diffDays <= 3) {
+                    countH3++;
+                }
+            });
+
+            elTotalH3.textContent = countH3;
+            elTotalIsolir.textContent = countIsolir;
+        }
+
+        function renderTabelTerbaru() {
+            tbodyRiwayat.innerHTML = '';
+            
+            if (dataTransaksi.length === 0) {
+                tbodyRiwayat.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-sm text-gray-500 italic">Belum ada data transaksi</td></tr>';
+                return;
+            }
+
+            // Copy and sort by date desc
+            const sortedTx = [...dataTransaksi].sort((a,b) => new Date(b.tanggalTransaksi) - new Date(a.tanggalTransaksi));
+            
+            // Get top 5
+            const top5 = sortedTx.slice(0, 5);
+
+            top5.forEach(tx => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-100 hover:bg-gray-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="py-3 px-4">${formatTanggalPendek(tx.tanggalTransaksi)}</td>
+                    <td class="py-3 px-4 font-medium">${tx.namaClient}</td>
+                    <td class="py-3 px-4 font-medium">${formatRupiah(tx.nominal)}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">${tx.metode}</span></td>
+                    <td class="py-3 px-4"><span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">${tx.status}</span></td>
+                `;
+                tbodyRiwayat.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
