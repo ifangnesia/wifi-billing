@@ -97,6 +97,9 @@
                         <button type="button" id="btnResetFilter" class="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
                             Reset Filter
                         </button>
+                        <button type="button" id="btnBuatLaporan" class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm cursor-pointer" onclick="buatLaporan()">
+                            Buat Laporan
+                        </button>
                     </div>
                     <button type="button" id="btnHapusTerpilih" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm shadow-sm hidden">
                         Hapus Terpilih
@@ -121,23 +124,24 @@
                                 <th class="py-3 px-4 font-medium text-right">Nominal (Rp)</th>
                                 <th class="py-3 px-4 font-medium">Metode Pembayaran</th>
                                 <th class="py-3 px-4 font-medium">Status</th>
+                                <th class="py-3 px-4 font-medium">Invoice</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm text-gray-700">
                             <!-- TODO: Data baris tabel akan dirender secara dinamis lewat JavaScript -->
                             <tr id="emptyRow">
-                                <td colspan="9" class="py-4 text-center italic text-gray-500">Belum ada data transaksi</td>
+                                <td colspan="10" class="py-4 text-center italic text-gray-500">Belum ada data transaksi</td>
                             </tr>
                             <!-- Not Found Message (Hidden by default) -->
                             <tr id="notFoundRow" class="hidden">
-                                <td colspan="9" class="py-8 text-center italic text-gray-500">Tidak ada riwayat transaksi pada tanggal tersebut</td>
+                                <td colspan="10" class="py-8 text-center italic text-gray-500">Tidak ada riwayat transaksi pada tanggal tersebut</td>
                             </tr>
                         </tbody>
                         <tfoot class="sticky bottom-0 bg-white z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] border-t-2 border-gray-200">
                             <tr>
                                 <td colspan="6" class="py-3 px-4 font-bold text-right text-gray-900 text-base">TOTAL PENDAPATAN BULANAN</td>
                                 <td class="py-3 px-4 font-bold text-right text-green-600 text-lg" id="totalPendapatan">Rp 0</td>
-                                <td colspan="2" class="py-3 px-4"></td>
+                                <td colspan="3" class="py-3 px-4"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -185,6 +189,16 @@
         const tbody = document.querySelector('tbody');
 
         let dataTransaksi = [];
+        let dataPelanggan = [];
+
+        db.collection('pelanggan').onSnapshot((snapshot) => {
+            dataPelanggan = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                data.idDoc = doc.id;
+                dataPelanggan.push(data);
+            });
+        });
 
         db.collection('transaksi').onSnapshot((snapshot) => {
             dataTransaksi = [];
@@ -248,13 +262,13 @@
             }
 
             if (dataTransaksi.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="py-4 text-center italic text-gray-500">Belum ada data transaksi</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="py-4 text-center italic text-gray-500">Belum ada data transaksi</td></tr>';
                 hitungTotal([]);
                 return;
             }
 
             if (visibleData.length === 0 && filterMonth) {
-                tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center italic text-gray-500">Tidak ada riwayat transaksi pada bulan tersebut</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center italic text-gray-500">Tidak ada riwayat transaksi pada bulan tersebut</td></tr>';
                 hitungTotal([]);
                 return;
             }
@@ -280,6 +294,14 @@
                     </td>
                     <td class="py-3 px-4">
                         <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">${tx.status}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <button class="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded font-bold text-xs transition-colors cursor-pointer shadow-sm border border-indigo-100" onclick="cetakInvoice('${tx.idTransaksi}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            Cetak
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -337,6 +359,274 @@
             filterMonthInput.value = '';
             renderTable();
         });
+
+        // Logic for Cetak Invoice
+        function cetakInvoice(idTransaksi) {
+            const tx = dataTransaksi.find(t => t.idTransaksi === idTransaksi);
+            if (!tx) return;
+
+            // Cari pelanggan untuk mendapatkan jatuhTempo dan info paket
+            const client = dataPelanggan.find(p => p.idClient === tx.idClient);
+            let tglTempo = '-';
+            if (client && client.jatuhTempo) {
+                tglTempo = new Date(client.jatuhTempo).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            } else {
+                // Fallback jika tak ada
+                tglTempo = new Date(tx.tanggalTransaksi).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
+
+            const idClient = tx.idClient;
+            // Generate invNumber e.g., 2609 (YYMM)
+            const dDate = new Date(tx.tanggalTransaksi);
+            const yy = String(dDate.getFullYear()).substring(2,4);
+            const mm = String(dDate.getMonth() + 1).padStart(2, '0');
+            const invNumber = `${idClient}/INV/${yy}${mm}`;
+
+            const tglCetak = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const noKontrak = `${idClient}/GMDP`;
+            const totalTagihan = formatRupiah(tx.nominal);
+            const namaClient = tx.namaClient;
+            const periodeTagihan = formatBulanIndo(tx.tanggalTransaksi);
+            
+            // Ambil paket langganan secara dinamis
+            const namaPaket = client && client.paket ? "Biaya Langganan " + client.paket : "Biaya Koneksi Internet";
+
+            const printHtml = `
+            <!DOCTYPE html>
+            <html lang="id">
+            <head>
+                <meta charset="UTF-8">
+                <title>Invoice PT. Global Media Data Prima</title>
+                <style>
+                    body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 20px; }
+                    .invoice-page { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 20mm; box-sizing: border-box; position: relative; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; padding-bottom: 15px; }
+                    .logo-area { display: flex; align-items: center; gap: 15px; }
+                    .logo-area img { width: 60px; height: auto; }
+                    .logo-text h2 { margin: 0; font-size: 18px; font-weight: bold; }
+                    .logo-text p { margin: 3px 0 0; font-size: 13px; color: #333; font-weight: bold; }
+                    .invoice-title-box { display: flex; justify-content: space-between; margin-top: 25px; align-items: flex-start; }
+                    .invoice-title h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
+                    .cust-id-box { border: 1px solid #000; text-align: center; width: 220px; }
+                    .cust-id-box .title { background: #f0f0f0; font-size: 11px; padding: 4px; border-bottom: 1px solid #000; font-weight: bold; }
+                    .cust-id-box .value { font-size: 15px; font-weight: bold; padding: 6px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #000; padding: 7px 10px; font-size: 12px; text-align: center; }
+                    th { background-color: #f2f2f2; font-weight: bold; }
+                    .text-left { text-align: left; }
+                    .text-right { text-align: right; }
+                    .to-section { margin-top: 20px; font-size: 13px; line-height: 1.5; }
+                    .summary-table { width: 320px; margin-left: auto; margin-top: 20px; }
+                    .summary-table td { border: 1px solid #000; padding: 5px 10px; font-size: 12px; }
+                    .btn-print { display: block; width: 200px; margin: 30px auto 0; padding: 10px; background: #0056b3; color: #fff; border: none; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 4px; text-align: center; }
+                    @media print {
+                        body { background: none; padding: 0; }
+                        .invoice-page { width: 100%; padding: 0; margin: 0; }
+                        .btn-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+            <div class="invoice-page">
+                <div class="header">
+                    <div class="logo-area">
+                        <img src="FORSAMPLEGMDP.png" alt="Logo GMDP">
+                        <div class="logo-text">
+                            <h2>PT. GLOBAL MEDIA DATA PRIMA</h2>
+                            <p>Internet Service Provider</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="invoice-title-box">
+                    <div class="invoice-title"><h1>INVOICE</h1></div>
+                    <div class="cust-id-box">
+                        <div class="title">Kode Pelanggan / Customer ID</div>
+                        <div class="value" id="inv-cust-id">${idClient}</div>
+                    </div>
+                </div>
+                <table>
+                    <tr>
+                        <th>Nomor / Number</th>
+                        <th>Tanggal Cetak Tagihan</th>
+                        <th>Tanggal Jatuh Tempo</th>
+                        <th>No. Kontrak</th>
+                        <th>Total Tagihan</th>
+                        <th>NPWP/NIK</th>
+                    </tr>
+                    <tr>
+                        <td id="inv-nomor">${invNumber}</td>
+                        <td id="inv-tgl-cetak">${tglCetak}</td>
+                        <td id="inv-tgl-tempo">${tglTempo}</td>
+                        <td id="inv-kontrak">${noKontrak}</td>
+                        <td id="inv-total">${totalTagihan}</td>
+                        <td>-</td>
+                    </tr>
+                </table>
+                <div class="to-section">
+                    <b>Kepada / To.</b><br>
+                    <span id="inv-nama">${namaClient}</span><br>
+                    Cilongok
+                </div>
+                <table>
+                    <tr>
+                        <th class="text-left">Keterangan / Description</th>
+                        <th>Periode / Period</th>
+                        <th>Pemakaian / Usage</th>
+                        <th class="text-right">Total (Rupiah)</th>
+                    </tr>
+                    <tr>
+                        <td class="text-left">${namaPaket}</td>
+                        <td id="inv-periode">${periodeTagihan}</td>
+                        <td>1 Bulan</td>
+                        <td class="text-right" id="inv-nominal">${totalTagihan}</td>
+                    </tr>
+                </table>
+                <table class="summary-table">
+                    <tr>
+                        <td class="text-left"><b>Sub Total</b></td>
+                        <td class="text-right" id="inv-subtotal">${totalTagihan}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-left"><b>PPN</b></td>
+                        <td class="text-right">-</td>
+                    </tr>
+                    <tr>
+                        <td class="text-left" style="background:#f2f2f2;"><b>Total Tagihan</b></td>
+                        <td class="text-right" style="background:#f2f2f2;" id="inv-grandtotal"><b>${totalTagihan}</b></td>
+                    </tr>
+                </table>
+                <button class="btn-print" onclick="window.print()">Cetak / Simpan PDF</button>
+            </div>
+            </body>
+            </html>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        }
+
+        // Logic for Buat Laporan Bulanan
+        function buatLaporan() {
+            let filterMonth = filterMonthInput.value;
+            let visibleData = dataTransaksi;
+            
+            if (filterMonth) {
+                visibleData = dataTransaksi.filter(tx => tx.tanggalTransaksi.startsWith(filterMonth));
+            }
+
+            // Urutkan berdasarkan tanggal terlama ke terbaru
+            visibleData.sort((a,b) => new Date(a.tanggalTransaksi) - new Date(b.tanggalTransaksi));
+
+            let periodText = "SEMUA WAKTU";
+            if (filterMonth) {
+                const [yyyy, mm] = filterMonth.split('-');
+                const d = new Date(yyyy, mm - 1);
+                periodText = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }).toUpperCase();
+            }
+
+            let tbodyHtml = '';
+            let grandTotal = 0;
+
+            visibleData.forEach((tx, idx) => {
+                const tDate = new Date(tx.tanggalTransaksi);
+                const dd = String(tDate.getDate()).padStart(2, '0');
+                const mmm = String(tDate.getMonth() + 1).padStart(2, '0');
+                const yyyy = tDate.getFullYear();
+                const formattedDate = `${dd}/${mmm}/${yyyy}`;
+
+                const client = dataPelanggan.find(p => p.idClient === tx.idClient);
+                const paket = client && client.paket ? client.paket.toUpperCase() : "-";
+
+                grandTotal += tx.nominal;
+
+                tbodyHtml += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${formattedDate}</td>
+                        <td>${tx.idClient}</td>
+                        <td class="text-left text-uppercase">${tx.namaClient.toUpperCase()}</td>
+                        <td>${tx.odp}</td>
+                        <td class="text-right">${formatRupiah(tx.nominal)}</td>
+                        <td>${(tx.metode || "").toUpperCase()}</td>
+                        <td>${paket}</td>
+                    </tr>
+                `;
+            });
+
+            if(visibleData.length === 0) {
+                tbodyHtml = `<tr><td colspan="8" class="text-center italic">Tidak ada transaksi pada periode ini</td></tr>`;
+            }
+
+            const printHtml = `
+            <!DOCTYPE html>
+            <html lang="id">
+            <head>
+                <meta charset="UTF-8">
+                <title>Laporan Transaksi Bulanan</title>
+                <style>
+                    body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 20px; }
+                    .report-page { width: 297mm; min-height: 210mm; margin: 0 auto; background: #fff; padding: 15mm; box-sizing: border-box; position: relative; }
+                    .report-title { text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 25px; }
+                    .period-text { font-size: 13px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+                    th, td { border: 1px solid #000; padding: 8px 10px; font-size: 12px; text-align: center; }
+                    th { background-color: #d3d3d3; font-weight: bold; }
+                    .text-left { text-align: left; }
+                    .text-right { text-align: right; }
+                    .text-uppercase { text-transform: uppercase; }
+                    .total-row td { font-weight: bold; background-color: #f9f9f9; }
+                    .btn-print { display: block; width: 200px; margin: 30px auto 0; padding: 10px; background: #6f42c1; color: #fff; border: none; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 4px; text-align: center; }
+                    @media print {
+                        body { background: none; padding: 0; }
+                        .report-page { width: 100%; padding: 0; margin: 0; }
+                        .btn-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+
+            <div class="report-page">
+                <div class="report-title">LAPORAN TRANSAKSI BULANAN</div>
+                
+                <div class="period-text" id="report-period">PERIODE : ${periodText}</div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">NO</th>
+                            <th style="width: 12%;">TGL TRANSAKSI</th>
+                            <th style="width: 12%;">ID CLIENT</th>
+                            <th style="width: 22%;">NAMA CLIENT</th>
+                            <th style="width: 8%;">ODP</th>
+                            <th style="width: 15%;">NOMINAL</th>
+                            <th style="width: 13%;">METODE PEMBAYARAN</th>
+                            <th style="width: 13%;">KET</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-tbody">
+                        ${tbodyHtml}
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="5" class="text-right">TOTAL TRANSAKSI</td>
+                            <td class="text-right" id="report-grandtotal">${formatRupiah(grandTotal)}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <button class="btn-print" onclick="window.print()">Cetak / Simpan PDF</button>
+            </div>
+
+            </body>
+            </html>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        }
     </script>
 </body>
 </html>
