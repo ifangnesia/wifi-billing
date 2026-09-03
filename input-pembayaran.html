@@ -100,7 +100,7 @@
                                 <th class="py-3 px-4 font-medium text-left">Tagihan (Rp)</th>
                                 <th class="py-3 px-4 font-medium">Status</th>
                                 <th class="py-3 px-4 font-medium">Metode</th>
-                                <th class="py-3 px-4 font-medium">Bukti</th>
+                                <th class="py-3 px-4 font-medium">Invoice</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm text-gray-700">
@@ -425,9 +425,9 @@
             const reversedData = [...dataTransaksi].reverse();
 
             reversedData.forEach((tx, index) => {
-                let buktiHtml = '-';
+                let invoiceHtml = `<button class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded font-bold text-xs cursor-default">Cetak</button>`;
                 if (tx.metode === 'Transfer' && tx.bukti) {
-                    buktiHtml = `<span class="text-blue-600 cursor-pointer hover:text-blue-800 font-bold underline" onclick="lihatBukti('${tx.idTransaksi}')">(bukti)</span>`;
+                    invoiceHtml += ` <span class="text-blue-600 cursor-pointer hover:text-blue-800 font-bold underline ml-2" onclick="lihatBukti('${tx.idTransaksi}')">(bukti)</span>`;
                 }
 
                 const tr = document.createElement('tr');
@@ -442,7 +442,7 @@
                         <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">Lunas</span>
                     </td>
                     <td class="py-3 px-4">${tx.metode}</td>
-                    <td class="py-3 px-4">${buktiHtml}</td>
+                    <td class="py-3 px-4">${invoiceHtml}</td>
                 `;
                 tbody.appendChild(tr);
             });
