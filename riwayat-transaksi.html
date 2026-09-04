@@ -54,7 +54,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
                 </svg>
-                <span>Tugas Isolir</span>
+                <span>Tagihan</span>
             </a>
             <a href="riwayat-transaksi.html" class="flex items-center gap-3 px-4 py-3 bg-purple-50 text-gray-900 font-bold rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
@@ -391,119 +391,20 @@
             // Ambil paket langganan secara dinamis
             const namaPaket = client && client.paket ? "Biaya Langganan " + client.paket : "Biaya Koneksi Internet";
 
-            const printHtml = `
-            <!DOCTYPE html>
-            <html lang="id">
-            <head>
-                <meta charset="UTF-8">
-                <title>Invoice PT. Global Media Data Prima</title>
-                <style>
-                    body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 20px; }
-                    .invoice-page { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 20mm; box-sizing: border-box; position: relative; }
-                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; padding-bottom: 15px; }
-                    .logo-area { display: flex; align-items: center; gap: 15px; }
-                    .logo-area img { width: 60px; height: auto; }
-                    .logo-text h2 { margin: 0; font-size: 18px; font-weight: bold; }
-                    .logo-text p { margin: 3px 0 0; font-size: 13px; color: #333; font-weight: bold; }
-                    .invoice-title-box { display: flex; justify-content: space-between; margin-top: 25px; align-items: flex-start; }
-                    .invoice-title h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
-                    .cust-id-box { border: 1px solid #000; text-align: center; width: 220px; }
-                    .cust-id-box .title { background: #f0f0f0; font-size: 11px; padding: 4px; border-bottom: 1px solid #000; font-weight: bold; }
-                    .cust-id-box .value { font-size: 15px; font-weight: bold; padding: 6px; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                    th, td { border: 1px solid #000; padding: 7px 10px; font-size: 12px; text-align: center; }
-                    th { background-color: #f2f2f2; font-weight: bold; }
-                    .text-left { text-align: left; }
-                    .text-right { text-align: right; }
-                    .to-section { margin-top: 20px; font-size: 13px; line-height: 1.5; }
-                    .summary-table { width: 320px; margin-left: auto; margin-top: 20px; }
-                    .summary-table td { border: 1px solid #000; padding: 5px 10px; font-size: 12px; }
-                    .btn-print { display: block; width: 200px; margin: 30px auto 0; padding: 10px; background: #0056b3; color: #fff; border: none; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 4px; text-align: center; }
-                    @media print {
-                        body { background: none; padding: 0; }
-                        .invoice-page { width: 100%; padding: 0; margin: 0; }
-                        .btn-print { display: none; }
-                    }
-                </style>
-            </head>
-            <body>
-            <div class="invoice-page">
-                <div class="header">
-                    <div class="logo-area">
-                        <img src="FORSAMPLEGMDP.png" alt="Logo GMDP">
-                        <div class="logo-text">
-                            <h2>PT. GLOBAL MEDIA DATA PRIMA</h2>
-                            <p>Internet Service Provider</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="invoice-title-box">
-                    <div class="invoice-title"><h1>INVOICE</h1></div>
-                    <div class="cust-id-box">
-                        <div class="title">Kode Pelanggan / Customer ID</div>
-                        <div class="value" id="inv-cust-id">${idClient}</div>
-                    </div>
-                </div>
-                <table>
-                    <tr>
-                        <th>Nomor / Number</th>
-                        <th>Tanggal Cetak Tagihan</th>
-                        <th>Tanggal Jatuh Tempo</th>
-                        <th>No. Kontrak</th>
-                        <th>Total Tagihan</th>
-                        <th>NPWP/NIK</th>
-                    </tr>
-                    <tr>
-                        <td id="inv-nomor">${invNumber}</td>
-                        <td id="inv-tgl-cetak">${tglCetak}</td>
-                        <td id="inv-tgl-tempo">${tglTempo}</td>
-                        <td id="inv-kontrak">${noKontrak}</td>
-                        <td id="inv-total">${totalTagihan}</td>
-                        <td>-</td>
-                    </tr>
-                </table>
-                <div class="to-section">
-                    <b>Kepada / To.</b><br>
-                    <span id="inv-nama">${namaClient}</span><br>
-                    Cilongok
-                </div>
-                <table>
-                    <tr>
-                        <th class="text-left">Keterangan / Description</th>
-                        <th>Periode / Period</th>
-                        <th>Pemakaian / Usage</th>
-                        <th class="text-right">Total (Rupiah)</th>
-                    </tr>
-                    <tr>
-                        <td class="text-left">${namaPaket}</td>
-                        <td id="inv-periode">${periodeTagihan}</td>
-                        <td>1 Bulan</td>
-                        <td class="text-right" id="inv-nominal">${totalTagihan}</td>
-                    </tr>
-                </table>
-                <table class="summary-table">
-                    <tr>
-                        <td class="text-left"><b>Sub Total</b></td>
-                        <td class="text-right" id="inv-subtotal">${totalTagihan}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-left"><b>PPN</b></td>
-                        <td class="text-right">-</td>
-                    </tr>
-                    <tr>
-                        <td class="text-left" style="background:#f2f2f2;"><b>Total Tagihan</b></td>
-                        <td class="text-right" style="background:#f2f2f2;" id="inv-grandtotal"><b>${totalTagihan}</b></td>
-                    </tr>
-                </table>
-                <button class="btn-print" onclick="window.print()">Cetak / Simpan PDF</button>
-            </div>
-            </body>
-            </html>
-            `;
+            const params = new URLSearchParams({
+                status: 'lunas',
+                idClient: idClient,
+                invNumber: invNumber,
+                tglCetak: tglCetak,
+                tglTempo: tglTempo,
+                noKontrak: noKontrak,
+                nama: namaClient,
+                paket: namaPaket,
+                periode: periodeTagihan,
+                total: totalTagihan
+            });
             
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(printHtml);
-            printWindow.document.close();
+            window.open('invoice.html?' + params.toString(), '_blank');
         }
 
         // Logic for Buat Laporan Bulanan

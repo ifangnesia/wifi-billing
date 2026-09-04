@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tugas Isolir - Wi-Fi Billing</title>
+    <title>Tagihan - Wi-Fi Billing</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -53,7 +53,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
                 </svg>
-                <span>Tugas Isolir</span>
+                <span>Tagihan</span>
             </a>
             <a href="riwayat-transaksi.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
@@ -77,7 +77,7 @@
         <!-- Topbar / Header Atas -->
         <header class="bg-white shadow-sm px-8 py-5 shrink-0 z-10 relative flex justify-between items-center">
             <div>
-                <h2 class="text-xl font-bold text-gray-800">Tugas Isolir</h2>
+                <h2 class="text-xl font-bold text-gray-800">Tagihan</h2>
             </div>
         </header>
 
@@ -100,7 +100,7 @@
                         </thead>
                         <tbody class="text-sm text-gray-700">
                             <tr>
-                                <td colspan="6" class="py-4 text-center italic text-gray-500">Belum ada tugas isolir</td>
+                                <td colspan="6" class="py-4 text-center italic text-gray-500">Belum ada Tagihan</td>
                             </tr>
                         </tbody>
                     </table>
@@ -201,7 +201,7 @@
             tbody.innerHTML = '';
             
             if (tugasData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center italic text-gray-500">Belum ada tugas isolir</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center italic text-gray-500">Belum ada Tagihan</td></tr>';
                 return;
             }
 

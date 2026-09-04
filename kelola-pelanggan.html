@@ -6,6 +6,8 @@
     <title>Kelola Pelanggan - Wi-Fi Billing</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
@@ -53,7 +55,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
                 </svg>
-                <span>Tugas Isolir</span>
+                <span>Tagihan</span>
             </a>
             <a href="riwayat-transaksi.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
@@ -135,9 +137,12 @@
             </div>
             
             <!-- Modal Body -->
-            <div class="p-6">
+            <div class="p-6" style="max-height: 75vh; overflow-y: auto;">
                 <form id="form-tambah" class="space-y-4">
                     <input type="hidden" id="editIdClient" value="">
+                    <input type="hidden" id="latitudePelanggan" value="">
+                    <input type="hidden" id="longitudePelanggan" value="">
+                    
                     <div>
                         <label for="input-nama" class="block text-sm font-medium text-gray-700 mb-1">Nama Pelanggan</label>
                         <input type="text" id="input-nama" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
@@ -146,9 +151,19 @@
                         <label for="input-wa" class="block text-sm font-medium text-gray-700 mb-1">Nomor WA</label>
                         <input type="tel" inputmode="numeric" id="input-wa" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
                     </div>
-                    <div>
-                        <label for="alamatPelanggan" class="block text-sm font-medium text-gray-700 mb-1">Lokasi Pelanggan</label>
-                        <input type="text" id="alamatPelanggan" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Titik Lokasi Peta</label>
+                            <div id="map" class="w-full rounded-lg border border-gray-300 mb-2 z-10 relative" style="height: 250px;"></div>
+                            
+                            <label for="alamatPelanggan" class="block text-sm font-medium text-gray-700 mb-1">Lokasi Peta (Otomatis)</label>
+                            <textarea id="alamatPelanggan" class="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none text-sm text-gray-500 cursor-not-allowed" rows="2" placeholder="Menunggu titik peta..." readonly required></textarea>
+                        </div>
+                        
+                        <div>
+                            <label for="detailAlamat" class="block text-sm font-medium text-gray-700 mb-1">Detail Alamat / No. Rumah / Patokan</label>
+                            <textarea id="detailAlamat" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" rows="2" placeholder="Misal: Blok A2 No. 12, Pagar Hitam" required></textarea>
+                        </div>
                     </div>
                     <div>
                         <label for="input-odp" class="block text-sm font-medium text-gray-700 mb-1">ODP</label>
@@ -176,6 +191,68 @@
                 </button>
                 <button type="button" id="btn-simpan" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
                     Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detail Pelanggan -->
+    <div id="modal-detail" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-lg mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-purple-50">
+                <h3 class="text-lg font-bold text-purple-700">Detail Pelanggan</h3>
+                <button id="btn-tutup-detail-atas" class="text-gray-400 hover:text-gray-600 focus:outline-none transition-colors">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto space-y-4 text-sm text-gray-700 flex-1">
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
+                    <div class="font-medium text-gray-500">ID Client</div>
+                    <div class="col-span-2 font-bold text-purple-700" id="detail-idClient">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
+                    <div class="font-medium text-gray-500">Nama Pelanggan</div>
+                    <div class="col-span-2 font-medium text-gray-900" id="detail-nama">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
+                    <div class="font-medium text-gray-500">Nomor WA</div>
+                    <div class="col-span-2" id="detail-wa">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
+                    <div class="font-medium text-gray-500">ODP</div>
+                    <div class="col-span-2" id="detail-odp">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
+                    <div class="font-medium text-gray-500">Paket Langganan</div>
+                    <div class="col-span-2 font-semibold" id="detail-paket">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
+                    <div class="font-medium text-gray-500">Jatuh Tempo</div>
+                    <div class="col-span-2" id="detail-jatuhTempo">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
+                    <div class="font-medium text-gray-500">Status Akun</div>
+                    <div class="col-span-2" id="detail-status">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
+                    <div class="font-medium text-gray-500">Lokasi Peta (Otomatis)</div>
+                    <div class="col-span-2 leading-relaxed" id="detail-lokasiPeta">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="font-medium text-gray-500">Detail Alamat / Patokan</div>
+                    <div class="col-span-2 leading-relaxed" id="detail-alamatManual">-</div>
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                <button type="button" id="btn-tutup-detail-bawah" class="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                    Tutup
                 </button>
             </div>
         </div>
@@ -210,18 +287,84 @@
         const formTambah = document.getElementById('form-tambah');
         const tabelPelanggan = document.getElementById('tabel-pelanggan');
 
+        let map;
+        let marker;
+        const DEFAULT_COORD = [-7.3888, 109.1126]; // Contoh default point
+
+        function initMap(lat, lng) {
+            const coord = [lat, lng];
+            
+            if (!map) {
+                map = L.map('map').setView(coord, 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                marker = L.marker(coord, {draggable: true}).addTo(map);
+
+                // Update coord on marker drag
+                marker.on('dragend', function (e) {
+                    const pos = marker.getLatLng();
+                    updateLocation(pos.lat, pos.lng);
+                });
+
+                // Update coord on map click
+                map.on('click', function (e) {
+                    marker.setLatLng(e.latlng);
+                    updateLocation(e.latlng.lat, e.latlng.lng);
+                });
+            } else {
+                map.setView(coord, 13);
+                marker.setLatLng(coord);
+            }
+            
+            // Fix map rendering issue in modal
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 300);
+        }
+
+        function updateLocation(lat, lng) {
+            document.getElementById('latitudePelanggan').value = lat;
+            document.getElementById('longitudePelanggan').value = lng;
+            
+            // Reverse Geocoding via Nominatim
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    if(data && data.display_name) {
+                        document.getElementById('alamatPelanggan').value = data.display_name;
+                    }
+                }).catch(err => console.log('Geocoding error:', err));
+        }
+
         function openModal() {
             modal.classList.remove('hidden');
+            
+            const editId = document.getElementById('editIdClient').value;
+            // Jika tidak sedang edit (tambah baru), gunakan default coord
+            if(!editId) {
+                document.getElementById('latitudePelanggan').value = '';
+                document.getElementById('longitudePelanggan').value = '';
+                document.getElementById('alamatPelanggan').value = '';
+                initMap(DEFAULT_COORD[0], DEFAULT_COORD[1]);
+            }
         }
 
         function closeModal() {
             modal.classList.add('hidden');
             formTambah.reset();
             document.getElementById('editIdClient').value = '';
+            document.getElementById('latitudePelanggan').value = '';
+            document.getElementById('longitudePelanggan').value = '';
             document.getElementById('modalTitle').textContent = 'Tambah Pelanggan Baru';
         }
 
-        btnTambah.addEventListener('click', openModal);
+        btnTambah.addEventListener('click', () => {
+            document.getElementById('editIdClient').value = '';
+            document.getElementById('modalTitle').textContent = 'Tambah Pelanggan Baru';
+            openModal();
+        });
         btnBatal.addEventListener('click', closeModal);
         btnTutupAtas.addEventListener('click', closeModal);
 
@@ -277,6 +420,82 @@
             }
         }
 
+        // Modal Detail Logic
+        const modalDetail = document.getElementById('modal-detail');
+        const btnTutupDetailAtas = document.getElementById('btn-tutup-detail-atas');
+        const btnTutupDetailBawah = document.getElementById('btn-tutup-detail-bawah');
+
+        function bukaModalDetail(idClient) {
+            const pelanggan = pelangganData.find(p => p.idClient === idClient);
+            if (pelanggan) {
+                document.getElementById('detail-idClient').textContent = pelanggan.idClient || '-';
+                document.getElementById('detail-nama').textContent = pelanggan.nama || '-';
+                document.getElementById('detail-wa').textContent = pelanggan.noWa || '-';
+                document.getElementById('detail-odp').textContent = pelanggan.odp ? 'ODP ' + pelanggan.odp : '-';
+                document.getElementById('detail-paket').textContent = pelanggan.paket || '-';
+                document.getElementById('detail-jatuhTempo').textContent = pelanggan.jatuhTempo ? formatTanggal(pelanggan.jatuhTempo) : '-';
+                
+                const statusHtml = (pelanggan.isIsolir === true)
+                    ? `<span class="bg-red-100 text-red-700 px-2 py-1 rounded font-bold text-xs">Isolir</span>`
+                    : `<span class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-xs">Aktif</span>`;
+                document.getElementById('detail-status').innerHTML = statusHtml;
+
+                document.getElementById('detail-lokasiPeta').textContent = pelanggan.alamat || '-';
+                document.getElementById('detail-alamatManual').textContent = pelanggan.detailAlamat || '-';
+
+                modalDetail.classList.remove('hidden');
+            }
+        }
+
+        function closeModalDetail() {
+            modalDetail.classList.add('hidden');
+        }
+
+        btnTutupDetailAtas.addEventListener('click', closeModalDetail);
+        btnTutupDetailBawah.addEventListener('click', closeModalDetail);
+        modalDetail.addEventListener('click', function(e) {
+            if (e.target === modalDetail) {
+                closeModalDetail();
+            }
+        });
+
+        function cetakInvoice(idClient) {
+            const pelanggan = pelangganData.find(p => p.idClient === idClient);
+            if (!pelanggan) return;
+
+            const dDate = new Date();
+            const yy = String(dDate.getFullYear()).substring(2,4);
+            const mm = String(dDate.getMonth() + 1).padStart(2, '0');
+            const invNumber = `${idClient}/INV/${yy}${mm}`;
+
+            const tglCetak = dDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const noKontrak = `${idClient}/GMDP`;
+            
+            // Format nominal
+            const totalTagihan = 'Rp ' + (pelanggan.nominalPaket || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            
+            // Format periode
+            const formatter = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' });
+            const periodeTagihan = formatter.format(dDate);
+
+            const namaPaket = pelanggan.paket ? "Biaya Langganan " + pelanggan.paket : "Biaya Koneksi Internet";
+
+            const params = new URLSearchParams({
+                status: 'tagihan', // Tanpa stempel LUNAS
+                idClient: pelanggan.idClient,
+                invNumber: invNumber,
+                tglCetak: tglCetak,
+                tglTempo: formatTanggal(pelanggan.jatuhTempo),
+                noKontrak: noKontrak,
+                nama: pelanggan.nama,
+                paket: namaPaket,
+                periode: periodeTagihan,
+                total: totalTagihan
+            });
+            
+            window.open('invoice.html?' + params.toString(), '_blank');
+        }
+
         function bukaModalEdit(idClient) {
             const pelanggan = pelangganData.find(p => p.idClient === idClient);
             if (pelanggan) {
@@ -284,9 +503,21 @@
                 document.getElementById('input-nama').value = pelanggan.nama;
                 document.getElementById('input-wa').value = pelanggan.noWa;
                 document.getElementById('alamatPelanggan').value = pelanggan.alamat || '';
+                document.getElementById('detailAlamat').value = pelanggan.detailAlamat || '';
                 document.getElementById('input-odp').value = pelanggan.odp;
                 document.getElementById('input-paket').value = pelanggan.paket;
                 document.getElementById('input-jatuh-tempo').value = pelanggan.jatuhTempo;
+                
+                // Koordinat Peta
+                if(pelanggan.latitude && pelanggan.longitude) {
+                    document.getElementById('latitudePelanggan').value = pelanggan.latitude;
+                    document.getElementById('longitudePelanggan').value = pelanggan.longitude;
+                    initMap(parseFloat(pelanggan.latitude), parseFloat(pelanggan.longitude));
+                } else {
+                    document.getElementById('latitudePelanggan').value = '';
+                    document.getElementById('longitudePelanggan').value = '';
+                    initMap(DEFAULT_COORD[0], DEFAULT_COORD[1]);
+                }
                 
                 document.getElementById('modalTitle').textContent = 'Edit Data Pelanggan';
                 openModal();
@@ -307,7 +538,8 @@
             tabelPelanggan.innerHTML = '';
             
             pelangganData.forEach((p, index) => {
-                let teksAlamat = (p.alamat && p.alamat.length > 25) ? p.alamat.substring(0, 25) + '...' : (p.alamat || '-');
+                let gabunganAlamat = (p.detailAlamat ? p.detailAlamat + ' - ' : '') + (p.alamat || '');
+                let teksAlamat = (gabunganAlamat.length > 30) ? gabunganAlamat.substring(0, 30) + '...' : (gabunganAlamat || '-');
 
                 const statusHtml = (p.isIsolir === true)
                     ? `<span class="bg-red-100 text-red-700 px-2 py-1 rounded font-bold text-xs">Isolir</span>`
@@ -330,9 +562,22 @@
                     <td class="py-3 px-4">
                         ${statusHtml}
                     </td>
-                    <td class="py-3 px-4 space-x-2">
-                        <span class="text-blue-600 cursor-pointer hover:underline font-bold" onclick="bukaModalEdit('${p.idClient}')">Edit</span>
-                        <button class="text-red-600 hover:text-red-800 font-medium" onclick="hapusPelanggan(${index})">Hapus</button>
+                    <td class="py-3 px-4">
+                        <div class="relative inline-block text-left">
+                            <button type="button" class="text-gray-500 hover:text-gray-700 focus:outline-none p-1 rounded-full hover:bg-gray-100 transition-colors" onclick="toggleDropdown(event, 'dropdown-${p.idClient}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                </svg>
+                            </button>
+                            <div id="dropdown-${p.idClient}" class="aksi-dropdown hidden absolute right-0 mt-1 w-28 bg-white rounded-md shadow-lg z-50 border border-gray-100 ring-1 ring-black ring-opacity-5">
+                                <div class="py-1">
+                                    <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.idClient}'); bukaModalDetail('${p.idClient}')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">Detail</button>
+                                    <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.idClient}'); cetakInvoice('${p.idClient}')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">Cetak</button>
+                                    <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.idClient}'); bukaModalEdit('${p.idClient}')" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">Edit</button>
+                                    <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.idClient}'); hapusPelanggan(${index})" class="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700">Hapus</button>
+                                </div>
+                            </div>
+                        </div>
                     </td>
                 `;
                 tabelPelanggan.appendChild(tr);
@@ -359,12 +604,16 @@
             const nama = document.getElementById('input-nama').value;
             const wa = document.getElementById('input-wa').value;
             const alamat = document.getElementById('alamatPelanggan').value;
+            const detailAlamat = document.getElementById('detailAlamat').value;
             const odp = document.getElementById('input-odp').value;
             const paket = document.getElementById('input-paket').value;
             const jatuhTempo = document.getElementById('input-jatuh-tempo').value;
             
-            if (!nama || !wa || !odp || !paket || !jatuhTempo || !alamat) {
-                alert('Harap lengkapi semua data form!');
+            const lat = document.getElementById('latitudePelanggan').value;
+            const lng = document.getElementById('longitudePelanggan').value;
+            
+            if (!nama || !wa || !odp || !paket || !jatuhTempo || !alamat || !detailAlamat) {
+                alert('Harap lengkapi semua data form termasuk lokasi peta dan detail alamat!');
                 return;
             }
 
@@ -390,6 +639,9 @@
                         nama: nama,
                         noWa: wa,
                         alamat: alamat,
+                        detailAlamat: detailAlamat,
+                        latitude: lat,
+                        longitude: lng,
                         odp: odp,
                         paket: paket,
                         nominalPaket: nominalPaket,
@@ -425,6 +677,9 @@
                     nama: nama,
                     noWa: wa,
                     alamat: alamat,
+                    detailAlamat: detailAlamat,
+                    latitude: lat,
+                    longitude: lng,
                     odp: odp,
                     paket: paket,
                     nominalPaket: nominalPaket,
@@ -482,6 +737,28 @@
                     alert("Gagal menghapus data secara massal");
                 });
             }
+        });
+
+        // Toggle Dropdown Aksi
+        function toggleDropdown(e, dropdownId) {
+            e.stopPropagation(); // Mencegah global click listener langsung menutupnya
+            // Tutup semua dropdown lain
+            document.querySelectorAll('.aksi-dropdown').forEach(dropdown => {
+                if(dropdown.id !== dropdownId) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+            const dd = document.getElementById(dropdownId);
+            if(dd) {
+                dd.classList.toggle('hidden');
+            }
+        }
+
+        // Tutup dropdown jika klik di luar area
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.aksi-dropdown').forEach(dropdown => {
+                dropdown.classList.add('hidden');
+            });
         });
 
     </script>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice PT. Global Media Data Prima</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #000; background: #fff; margin: 0; padding: 20px; }
+        .invoice-container { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 15mm; box-sizing: border-box; position: relative; }
+        
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .logo-area img { width: 60px; height: auto; }
+        .logo-text h2 { margin: 0; font-size: 18px; color: #333; }
+        .logo-text p { margin: 2px 0 0; font-size: 12px; color: #666; }
+        
+        .invoice-title-box { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; }
+        .invoice-title h1 { margin: 0; font-size: 24px; letter-spacing: 2px; }
+        .cust-id-box { border: 1px solid #000; text-align: center; width: 200px; }
+        .cust-id-box .title { background-color: #d3d3d3; font-size: 10px; padding: 3px; font-weight: bold; border-bottom: 1px solid #000; }
+        .cust-id-box .value { font-size: 15px; font-weight: bold; padding: 6px; }
+
+        .header-table, table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #000; padding: 6px 8px; font-size: 11px; text-align: center; }
+        th { background-color: #d3d3d3; font-weight: bold; }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+        
+        .to-section { margin-top: 20px; font-size: 13px; line-height: 1.5; }
+        
+        .summary-table { width: 320px; margin-left: auto; margin-top: 20px; }
+        .summary-table td { padding: 5px 10px; font-size: 12px; }
+
+        /* Styling Khusus Stempel Lunas */
+        .stamp-lunas {
+            display: none; /* Default tersembunyi */
+            position: absolute;
+            /* Atur posisi presisi ke area kosong sebelah kiri bawah tabel */
+            top: 460px; 
+            left: 70px;
+            
+            border: 4px solid #6f42c1;
+            color: #6f42c1;
+            font-size: 32px;
+            font-weight: bold;
+            padding: 4px 20px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            transform: rotate(-12deg);
+            opacity: 0.8;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .show-stamp .stamp-lunas {
+            display: block; /* Muncul jika class show-stamp aktif */
+        }
+        
+        .btn-print { display: block; width: 180px; margin: 30px auto 0; padding: 10px; background: #6f42c1; color: #fff; border: none; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 4px; text-align: center; }
+        @media print {
+            body { background: none; padding: 0; }
+            .invoice-container { width: 100%; padding: 0; margin: 0; border: none; }
+            .btn-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="invoice-container" id="invoiceCard">
+    <div class="header">
+        <div class="logo-area">
+            <img src="FORSAMPLEGMDP.png" alt="Logo GMDP">
+            <div class="logo-text">
+                <h2>PT. GLOBAL MEDIA DATA PRIMA</h2>
+                <p>Internet Service Provider</p>
+            </div>
+        </div>
+    </div>
+    <div class="invoice-title-box">
+        <div class="invoice-title"><h1>INVOICE</h1></div>
+        <div class="cust-id-box">
+            <div class="title">Kode Pelanggan / Customer ID</div>
+            <div class="value" id="inv-cust-id">-</div>
+        </div>
+    </div>
+    <table>
+        <tr>
+            <th>Nomor / Number</th>
+            <th>Tanggal Cetak Tagihan</th>
+            <th>Tanggal Jatuh Tempo</th>
+            <th>No. Kontrak</th>
+            <th>Total Tagihan</th>
+            <th>NPWP/NIK</th>
+        </tr>
+        <tr>
+            <td id="inv-nomor">-</td>
+            <td id="inv-tgl-cetak">-</td>
+            <td id="inv-tgl-tempo">-</td>
+            <td id="inv-kontrak">-</td>
+            <td id="inv-total">-</td>
+            <td>-</td>
+        </tr>
+    </table>
+    <div class="to-section">
+        <b>Kepada / To.</b><br>
+        <span id="inv-nama">-</span><br>
+    </div>
+    <table>
+        <tr>
+            <th class="text-left">Keterangan / Description</th>
+            <th>Periode / Period</th>
+            <th>Pemakaian / Usage</th>
+            <th class="text-right">Total (Rupiah)</th>
+        </tr>
+        <tr>
+            <td class="text-left" id="inv-keterangan">-</td>
+            <td id="inv-periode">-</td>
+            <td>1 Bulan</td>
+            <td class="text-right" id="inv-nominal">-</td>
+        </tr>
+    </table>
+    <table class="summary-table">
+        <tr>
+            <td class="text-left"><b>Sub Total</b></td>
+            <td class="text-right" id="inv-subtotal">-</td>
+        </tr>
+        <tr>
+            <td class="text-left"><b>PPN</b></td>
+            <td class="text-right">-</td>
+        </tr>
+        <tr>
+            <td class="text-left" style="background-color:#d3d3d3;"><b>Total Tagihan</b></td>
+            <td class="text-right" style="background-color:#d3d3d3;" id="inv-grandtotal"><b>-</b></td>
+        </tr>
+    </table>
+    
+    <!-- Elemen Stempel Lunas -->
+    <div class="stamp-lunas">LUNAS</div>
+
+    <button class="btn-print" onclick="window.print()">Cetak / Simpan PDF</button>
+</div>
+
+<script>
+    // Logika pembacaan parameter URL
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Status
+    const statusBayar = urlParams.get('status');
+    if (statusBayar === 'lunas') {
+        document.getElementById('invoiceCard').classList.add('show-stamp');
+    }
+
+    // Mengisi data ke HTML
+    document.getElementById('inv-cust-id').textContent = urlParams.get('idClient') || '-';
+    document.getElementById('inv-nomor').textContent = urlParams.get('invNumber') || '-';
+    document.getElementById('inv-tgl-cetak').textContent = urlParams.get('tglCetak') || '-';
+    document.getElementById('inv-tgl-tempo').textContent = urlParams.get('tglTempo') || '-';
+    document.getElementById('inv-kontrak').textContent = urlParams.get('noKontrak') || '-';
+    document.getElementById('inv-nama').textContent = urlParams.get('nama') || '-';
+    document.getElementById('inv-keterangan').textContent = urlParams.get('paket') || '-';
+    document.getElementById('inv-periode').textContent = urlParams.get('periode') || '-';
+    
+    const nominalStr = urlParams.get('total') || '-';
+    document.getElementById('inv-total').textContent = nominalStr;
+    document.getElementById('inv-nominal').textContent = nominalStr;
+    document.getElementById('inv-subtotal').textContent = nominalStr;
+    document.getElementById('inv-grandtotal').innerHTML = `<b>${nominalStr}</b>`;
+</script>
+</body>
+</html>
