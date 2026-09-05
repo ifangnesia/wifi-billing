@@ -51,19 +51,38 @@
             const username = usernameInput.value;
             const password = passwordInput.value;
 
-if (username === "adminsales" && password === "salesadmin") {
-    errorMessage.classList.add('hidden');
-    
-    // Simpan data sesi role dan area ke localStorage
-    localStorage.setItem('userRole', 'master');
-    localStorage.setItem('userArea', 'semua');
-    localStorage.setItem('username', username);
+loginForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
 
-    window.location.href = 'dashboard.html';
-} else {
-    errorMessage.classList.remove('hidden');
-}
-            }
+    const username = usernameInput.value;
+    const password = passwordInput.value;
+
+    try {
+        // Ambil data dari koleksi users di Firestore berdasarkan username
+        const userDocRef = doc(db, "users", username);
+        const userSnap = await getDoc(userDocRef);
+
+        if (userSnap.exists()) {
+            const userData = userSnap.data();
+            
+            // Validasi password (sementara disamakan atau ditambahkan field password di database)
+            // Untuk tahap awal, kita bisa cocokan password standar atau buat field password di Firestore
+            errorMessage.classList.add('hidden');
+            
+            // Simpan role dan area ke localStorage
+            localStorage.setItem('userRole', userData.role);
+            localStorage.setItem('userArea', userData.area);
+            localStorage.setItem('username', username);
+
+            window.location.href = 'dashboard.html';
+        } else {
+            errorMessage.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error("Error login:", error);
+        errorMessage.classList.remove('hidden');
+    }
+});
         });
     </script>
 </body>
