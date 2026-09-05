@@ -51,11 +51,18 @@
             const username = usernameInput.value;
             const password = passwordInput.value;
 
-            if (username === "adminsales" && password === "salesadmin") {
-                errorMessage.classList.add('hidden');
-                window.location.href = 'dashboard.html';
-            } else {
-                errorMessage.classList.remove('hidden');
+if (username === "adminsales" && password === "salesadmin") {
+    errorMessage.classList.add('hidden');
+    
+    // Simpan data sesi role dan area ke localStorage
+    localStorage.setItem('userRole', 'master');
+    localStorage.setItem('userArea', 'semua');
+    localStorage.setItem('username', username);
+
+    window.location.href = 'dashboard.html';
+} else {
+    errorMessage.classList.remove('hidden');
+}
             }
         });
     </script>
