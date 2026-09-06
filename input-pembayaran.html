@@ -293,7 +293,13 @@
         let dataTransaksi = [];
 
         // Real-time listener Pelanggan
-        db.collection('pelanggan').onSnapshot((snapshot) => {
+        let pelangganQuery = db.collection('pelanggan');
+        const roleQ = localStorage.getItem('userRole');
+        const areaQ = localStorage.getItem('userArea');
+        if (roleQ === 'sales' && areaQ) {
+            pelangganQuery = pelangganQuery.where('area', '==', areaQ);
+        }
+        pelangganQuery.onSnapshot((snapshot) => {
             dataPelanggan = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
@@ -313,7 +319,11 @@
         });
 
         // Real-time listener Transaksi
-        db.collection('transaksi').onSnapshot((snapshot) => {
+        let transaksiQuery = db.collection('transaksi');
+        if (roleQ === 'sales' && areaQ) {
+            transaksiQuery = transaksiQuery.where('area', '==', areaQ);
+        }
+        transaksiQuery.onSnapshot((snapshot) => {
             dataTransaksi = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
@@ -353,7 +363,11 @@
             const metode = inputMetode.value;
 
             const inputArea = document.getElementById('input-area');
-            const area = inputArea ? inputArea.value : '';
+            let area = inputArea ? inputArea.value : '';
+            const sessionRole = localStorage.getItem('userRole');
+            if (sessionRole === 'sales') {
+                area = localStorage.getItem('userArea');
+            }
 
             if (!selectedId || !nominal || !area) {
                 alert('Pilih pelanggan dan area terlebih dahulu!');

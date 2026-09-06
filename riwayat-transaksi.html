@@ -194,7 +194,14 @@
         let dataTransaksi = [];
         let dataPelanggan = [];
 
-        db.collection('pelanggan').onSnapshot((snapshot) => {
+        let pelangganQuery = db.collection('pelanggan');
+        const roleQ = localStorage.getItem('userRole');
+        const areaQ = localStorage.getItem('userArea');
+        if (roleQ === 'sales' && areaQ) {
+            pelangganQuery = pelangganQuery.where('area', '==', areaQ);
+        }
+
+        pelangganQuery.onSnapshot((snapshot) => {
             dataPelanggan = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
@@ -203,7 +210,12 @@
             });
         });
 
-        db.collection('transaksi').onSnapshot((snapshot) => {
+        let transaksiQuery = db.collection('transaksi');
+        if (roleQ === 'sales' && areaQ) {
+            transaksiQuery = transaksiQuery.where('area', '==', areaQ);
+        }
+
+        transaksiQuery.onSnapshot((snapshot) => {
             dataTransaksi = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();

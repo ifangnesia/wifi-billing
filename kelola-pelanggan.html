@@ -424,7 +424,14 @@
         let pelangganData = [];
 
         // Ambil data pelanggan secara real-time dari Firestore
-        db.collection('pelanggan').onSnapshot((snapshot) => {
+        let pelangganQuery = db.collection('pelanggan');
+        const roleQ = localStorage.getItem('userRole');
+        const areaQ = localStorage.getItem('userArea');
+        if (roleQ === 'sales' && areaQ) {
+            pelangganQuery = pelangganQuery.where('area', '==', areaQ);
+        }
+
+        pelangganQuery.onSnapshot((snapshot) => {
             pelangganData = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
@@ -649,7 +656,11 @@
             const lat = document.getElementById('latitudePelanggan').value;
             const lng = document.getElementById('longitudePelanggan').value;
             
-            const area = document.getElementById('input-area') ? document.getElementById('input-area').value : '';
+            let area = document.getElementById('input-area') ? document.getElementById('input-area').value : '';
+            const sessionRole = localStorage.getItem('userRole');
+            if (sessionRole === 'sales') {
+                area = localStorage.getItem('userArea');
+            }
             
             if (!nama || !wa || !odp || !paket || !jatuhTempo || !alamat || !detailAlamat || !area) {
                 alert('Harap lengkapi semua data form termasuk lokasi peta, detail alamat, dan area!');
