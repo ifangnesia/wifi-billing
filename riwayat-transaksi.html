@@ -50,7 +50,7 @@
                 </svg>
                 <span>Input Pembayaran</span>
             </a>
-            <a href="tugas-isolir.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+            <a href="tagihan.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
                 </svg>
@@ -65,7 +65,7 @@
         </nav>
         <!-- Footer -->
         <div class="p-4 border-t border-gray-200 mt-auto shrink-0">
-            <a href="login.html" class="block text-red-500 font-bold hover:text-red-700 cursor-pointer">KELUAR</a>
+            <a href="#" onclick="logout(event)" class="block text-red-500 font-bold hover:text-red-700 cursor-pointer">KELUAR</a>
         </div>
     </aside>
 
@@ -99,6 +99,9 @@
                         </button>
                         <button type="button" id="btnBuatLaporan" class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm cursor-pointer" onclick="buatLaporan()">
                             Buat Laporan
+                        </button>
+                        <button type="button" id="btnFilterMaster" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm hidden">
+                            Filter
                         </button>
                     </div>
                     <button type="button" id="btnHapusTerpilih" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm shadow-sm hidden">
@@ -250,25 +253,38 @@
             }
         }
 
+        let currentFilterArea = '';
+
         function renderTable(filterMonth = '') {
             tbody.innerHTML = '';
             checkAll.checked = false;
             toggleHapusBtn();
             
+            const role = localStorage.getItem('userRole');
+            const userArea = localStorage.getItem('userArea');
+            
             let visibleData = dataTransaksi;
             
+            // RBAC Filter: sales only sees their own area
+            if (role === 'sales') {
+                visibleData = visibleData.filter(tx => tx.area === userArea);
+            } else if (role === 'master' && currentFilterArea) {
+                // Master can use currentFilterArea if selected
+                visibleData = visibleData.filter(tx => tx.area === currentFilterArea);
+            }
+            
             if (filterMonth) {
-                visibleData = dataTransaksi.filter(tx => tx.tanggalTransaksi.startsWith(filterMonth));
+                visibleData = visibleData.filter(tx => tx.tanggalTransaksi.startsWith(filterMonth));
             }
 
-            if (dataTransaksi.length === 0) {
+            if (dataTransaksi.length === 0 || (role === 'sales' && visibleData.length === 0 && !filterMonth)) {
                 tbody.innerHTML = '<tr><td colspan="10" class="py-4 text-center italic text-gray-500">Belum ada data transaksi</td></tr>';
                 hitungTotal([]);
                 return;
             }
 
-            if (visibleData.length === 0 && filterMonth) {
-                tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center italic text-gray-500">Tidak ada riwayat transaksi pada bulan tersebut</td></tr>';
+            if (visibleData.length === 0 && (filterMonth || currentFilterArea)) {
+                tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center italic text-gray-500">Tidak ada riwayat transaksi yang sesuai filter</td></tr>';
                 hitungTotal([]);
                 return;
             }
@@ -357,7 +373,29 @@
 
         btnResetFilter.addEventListener('click', function() {
             filterMonthInput.value = '';
+            currentFilterArea = '';
             renderTable();
+        });
+
+        // Initialize RBAC UI for riwayat-transaksi
+        const userRole = localStorage.getItem('userRole');
+        const btnFilterMaster = document.getElementById('btnFilterMaster');
+        const tfootEl = document.querySelector('tfoot');
+
+        if (userRole === 'master') {
+            btnFilterMaster.classList.remove('hidden');
+        } else {
+            if (tfootEl) tfootEl.classList.add('hidden');
+        }
+
+        btnFilterMaster.addEventListener('click', function() {
+            if (userRole !== 'master') return;
+            
+            const area = prompt("Masukkan Area untuk difilter (BIN/BRS/YNT/PWT/CIL) atau kosongkan untuk semua area:");
+            if (area !== null) {
+                currentFilterArea = area.trim().toUpperCase();
+                renderTable(filterMonthInput.value);
+            }
         });
 
         // Logic for Cetak Invoice
@@ -528,6 +566,12 @@
             printWindow.document.write(printHtml);
             printWindow.document.close();
         }
+
+        function logout(e) {
+            e.preventDefault();
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
     </script>
 </body>
-</html>
+</html>

@@ -39,51 +39,92 @@
         </form>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script>
+        // Konfigurasi Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzXiIDFpYYP56ynQjStCT4bV9IcGl4kXI",
+            authDomain: "e-billingthom.firebaseapp.com",
+            projectId: "e-billingthom",
+            storageBucket: "e-billingthom.firebasestorage.app",
+            messagingSenderId: "450682516112",
+            appId: "1:450682516112:web:0c3f64868be3a6c7c76215"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Seeder Akun Wajib
+        async function seedUsers() {
+            const users = [
+                { id: "adminsales", password: "salesadmin", area: "semua", role: "master" },
+                { id: "masteradmin", password: "adminmaster", area: "semua", role: "master" },
+                { id: "salesbin", password: "binsales", area: "BIN", role: "sales" },
+                { id: "adminbros", password: "brosadmin", area: "BRS", role: "sales" },
+                { id: "adminyanti", password: "yantiadmin", area: "YNT", role: "sales" }
+            ];
+
+            for (const u of users) {
+                const docRef = db.collection('users').doc(u.id);
+                docRef.get().then(docSnap => {
+                    if (!docSnap.exists) {
+                        docRef.set({
+                            username: u.id,
+                            password: u.password,
+                            area: u.area,
+                            role: u.role
+                        }).then(() => console.log("Seeded user:", u.id));
+                    }
+                });
+            }
+        }
+        
+        // Panggil seeder saat halaman diload
+        seedUsers();
+
         const loginForm = document.getElementById('login-form');
         const errorMessage = document.getElementById('error-message');
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
 
-        loginForm.addEventListener('submit', function(e) {
+        loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const username = usernameInput.value;
+            const username = usernameInput.value.trim();
             const password = passwordInput.value;
 
-loginForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
+            try {
+                const userDocRef = db.collection('users').doc(username);
+                const userSnap = await userDocRef.get();
 
-    const username = usernameInput.value;
-    const password = passwordInput.value;
+                if (userSnap.exists) {
+                    const userData = userSnap.data();
+                    
+                    if (userData.password === password) {
+                        errorMessage.classList.add('hidden');
+                        
+                        // Simpan role dan area ke localStorage
+                        localStorage.setItem('userRole', userData.role);
+                        localStorage.setItem('userArea', userData.area);
+                        localStorage.setItem('username', username);
 
-    try {
-        // Ambil data dari koleksi users di Firestore berdasarkan username
-        const userDocRef = doc(db, "users", username);
-        const userSnap = await getDoc(userDocRef);
-
-        if (userSnap.exists()) {
-            const userData = userSnap.data();
-            
-            // Validasi password (sementara disamakan atau ditambahkan field password di database)
-            // Untuk tahap awal, kita bisa cocokan password standar atau buat field password di Firestore
-            errorMessage.classList.add('hidden');
-            
-            // Simpan role dan area ke localStorage
-            localStorage.setItem('userRole', userData.role);
-            localStorage.setItem('userArea', userData.area);
-            localStorage.setItem('username', username);
-
-            window.location.href = 'dashboard.html';
-        } else {
-            errorMessage.classList.remove('hidden');
-        }
-    } catch (error) {
-        console.error("Error login:", error);
-        errorMessage.classList.remove('hidden');
-    }
-});
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        errorMessage.textContent = 'Password salah!';
+                        errorMessage.classList.remove('hidden');
+                    }
+                } else {
+                    errorMessage.textContent = 'Username tidak ditemukan!';
+                    errorMessage.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Error login:", error);
+                errorMessage.textContent = 'Terjadi kesalahan sistem!';
+                errorMessage.classList.remove('hidden');
+            }
         });
     </script>
 </body>
-</html>
+</html>

@@ -51,7 +51,7 @@
                 </svg>
                 <span>Input Pembayaran</span>
             </a>
-            <a href="tugas-isolir.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+            <a href="tagihan.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
                 </svg>
@@ -66,7 +66,7 @@
         </nav>
         <!-- Footer -->
         <div class="p-4 border-t border-gray-200 mt-auto shrink-0">
-            <a href="login.html" class="block text-red-500 font-bold hover:text-red-700 cursor-pointer">KELUAR</a>
+            <a href="#" onclick="logout(event)" class="block text-red-500 font-bold hover:text-red-700 cursor-pointer">KELUAR</a>
         </div>
     </aside>
 
@@ -107,6 +107,7 @@
                                 <th class="py-3 px-4 font-medium">Nama</th>
                                 <th class="py-3 px-4 font-medium">Nomor WA</th>
                                 <th class="py-3 px-4 font-medium">Lokasi</th>
+                                <th class="py-3 px-4 font-medium">Area</th>
                                 <th class="py-3 px-4 font-medium">ODP</th>
                                 <th class="py-3 px-4 font-medium">Paket</th>
                                 <th class="py-3 px-4 font-medium">Tanggal Jatuh Tempo</th>
@@ -150,6 +151,10 @@
                     <div>
                         <label for="input-wa" class="block text-sm font-medium text-gray-700 mb-1">Nomor WA</label>
                         <input type="tel" inputmode="numeric" id="input-wa" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                    </div>
+                    <div id="container-area">
+                        <label for="input-area" class="block text-sm font-medium text-gray-700 mb-1">Area</label>
+                        <!-- Render via JS based on role -->
                     </div>
                     <div class="space-y-3">
                         <div>
@@ -222,6 +227,10 @@
                 <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
                     <div class="font-medium text-gray-500">Nomor WA</div>
                     <div class="col-span-2" id="detail-wa">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
+                    <div class="font-medium text-gray-500">Area</div>
+                    <div class="col-span-2 font-semibold" id="detail-area">-</div>
                 </div>
                 <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-2">
                     <div class="font-medium text-gray-500">ODP</div>
@@ -338,6 +347,29 @@
                 }).catch(err => console.log('Geocoding error:', err));
         }
 
+        function renderAreaInput(prefillArea) {
+            const role = localStorage.getItem('userRole');
+            const userArea = localStorage.getItem('userArea');
+            const container = document.getElementById('container-area');
+            
+            let htmlArea = '';
+            if (role === 'master') {
+                const opsiArea = ['BIN', 'BRS', 'YNT', 'PWT', 'CIL'];
+                htmlArea = `<select id="input-area" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                                <option value="" disabled ${!prefillArea ? 'selected' : ''}>Pilih Area</option>`;
+                opsiArea.forEach(a => {
+                    htmlArea += `<option value="${a}" ${prefillArea === a ? 'selected' : ''}>${a}</option>`;
+                });
+                htmlArea += `</select>`;
+            } else {
+                // Sales
+                const v = prefillArea || userArea || '';
+                htmlArea = `<input type="text" id="input-area" class="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none text-gray-500 cursor-not-allowed" value="${v}" readonly required>`;
+            }
+            
+            container.innerHTML = `<label for="input-area" class="block text-sm font-medium text-gray-700 mb-1">Area</label>` + htmlArea;
+        }
+
         function openModal() {
             modal.classList.remove('hidden');
             
@@ -348,6 +380,7 @@
                 document.getElementById('longitudePelanggan').value = '';
                 document.getElementById('alamatPelanggan').value = '';
                 initMap(DEFAULT_COORD[0], DEFAULT_COORD[1]);
+                renderAreaInput(''); // reset area
             }
         }
 
@@ -431,6 +464,7 @@
                 document.getElementById('detail-idClient').textContent = pelanggan.idClient || '-';
                 document.getElementById('detail-nama').textContent = pelanggan.nama || '-';
                 document.getElementById('detail-wa').textContent = pelanggan.noWa || '-';
+                document.getElementById('detail-area').textContent = pelanggan.area || '-';
                 document.getElementById('detail-odp').textContent = pelanggan.odp ? 'ODP ' + pelanggan.odp : '-';
                 document.getElementById('detail-paket').textContent = pelanggan.paket || '-';
                 document.getElementById('detail-jatuhTempo').textContent = pelanggan.jatuhTempo ? formatTanggal(pelanggan.jatuhTempo) : '-';
@@ -508,6 +542,8 @@
                 document.getElementById('input-paket').value = pelanggan.paket;
                 document.getElementById('input-jatuh-tempo').value = pelanggan.jatuhTempo;
                 
+                renderAreaInput(pelanggan.area);
+                
                 // Koordinat Peta
                 if(pelanggan.latitude && pelanggan.longitude) {
                     document.getElementById('latitudePelanggan').value = pelanggan.latitude;
@@ -556,6 +592,7 @@
                     <td class="py-3 px-4 font-medium">${p.nama}</td>
                     <td class="py-3 px-4">${p.noWa}</td>
                     <td title="${p.alamat || ''}" class="py-3 px-4 whitespace-nowrap">${teksAlamat}</td>
+                    <td class="py-3 px-4">${p.area || '-'}</td>
                     <td class="py-3 px-4 font-medium">ODP ${p.odp}</td>
                     <td class="py-3 px-4">${p.paket}</td>
                     <td class="py-3 px-4">${formatTanggal(p.jatuhTempo)}</td>
@@ -612,8 +649,10 @@
             const lat = document.getElementById('latitudePelanggan').value;
             const lng = document.getElementById('longitudePelanggan').value;
             
-            if (!nama || !wa || !odp || !paket || !jatuhTempo || !alamat || !detailAlamat) {
-                alert('Harap lengkapi semua data form termasuk lokasi peta dan detail alamat!');
+            const area = document.getElementById('input-area') ? document.getElementById('input-area').value : '';
+            
+            if (!nama || !wa || !odp || !paket || !jatuhTempo || !alamat || !detailAlamat || !area) {
+                alert('Harap lengkapi semua data form termasuk lokasi peta, detail alamat, dan area!');
                 return;
             }
 
@@ -640,6 +679,7 @@
                         noWa: wa,
                         alamat: alamat,
                         detailAlamat: detailAlamat,
+                        area: area,
                         latitude: lat,
                         longitude: lng,
                         odp: odp,
@@ -678,13 +718,15 @@
                     noWa: wa,
                     alamat: alamat,
                     detailAlamat: detailAlamat,
+                    area: area,
                     latitude: lat,
                     longitude: lng,
                     odp: odp,
                     paket: paket,
                     nominalPaket: nominalPaket,
                     jatuhTempo: jatuhTempo,
-                    status: status
+                    status: status,
+                    isIsolir: false
                 }).then(() => {
                     closeModal();
                 }).catch((error) => {
@@ -761,6 +803,11 @@
             });
         });
 
+        function logout(e) {
+            e.preventDefault();
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
     </script>
 </body>
-</html>
+</html>

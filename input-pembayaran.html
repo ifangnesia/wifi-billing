@@ -49,7 +49,7 @@
                 </svg>
                 <span>Input Pembayaran</span>
             </a>
-            <a href="tugas-isolir.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+            <a href="tagihan.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-600">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
                 </svg>
@@ -64,7 +64,7 @@
         </nav>
         <!-- Footer -->
         <div class="p-4 border-t border-gray-200 mt-auto shrink-0">
-            <a href="login.html" class="block text-red-500 font-bold hover:text-red-700 cursor-pointer">KELUAR</a>
+            <a href="#" onclick="logout(event)" class="block text-red-500 font-bold hover:text-red-700 cursor-pointer">KELUAR</a>
         </div>
     </aside>
 
@@ -134,6 +134,9 @@
                             <option value="" disabled selected>-- Pilih Pelanggan --</option>
                             <!-- Data pelanggan akan dirender secara dinamis lewat JavaScript -->
                         </select>
+                    </div>
+                    <div id="container-area">
+                        <!-- Render via JS based on role -->
                     </div>
                     <div>
                         <label for="input-nominal" class="block text-sm font-medium text-gray-700 mb-1">Nominal Uang (Rp)</label>
@@ -225,9 +228,31 @@
         const containerBukti = document.getElementById('container-bukti');
         const inputNominal = document.getElementById('input-nominal');
 
+        function renderAreaInput() {
+            const role = localStorage.getItem('userRole');
+            const userArea = localStorage.getItem('userArea');
+            const container = document.getElementById('container-area');
+            
+            let htmlArea = '';
+            if (role === 'master') {
+                const opsiArea = ['BIN', 'BRS', 'YNT', 'PWT', 'CIL'];
+                htmlArea = `<select id="input-area" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                                <option value="" disabled selected>Pilih Area</option>`;
+                opsiArea.forEach(a => {
+                    htmlArea += `<option value="${a}">${a}</option>`;
+                });
+                htmlArea += `</select>`;
+            } else {
+                htmlArea = `<input type="text" id="input-area" class="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none text-gray-500 cursor-not-allowed" value="${userArea}" readonly required>`;
+            }
+            
+            container.innerHTML = `<label for="input-area" class="block text-sm font-medium text-gray-700 mb-1">Area</label>` + htmlArea;
+        }
+
         // Fungsi Buka Modal
         function bukaModal() {
             modal.classList.remove('hidden');
+            renderAreaInput();
         }
 
         btnTambah.addEventListener('click', bukaModal);
@@ -327,8 +352,11 @@
             const nominal = inputNominal.value;
             const metode = inputMetode.value;
 
-            if (!selectedId || !nominal) {
-                alert('Pilih pelanggan terlebih dahulu!');
+            const inputArea = document.getElementById('input-area');
+            const area = inputArea ? inputArea.value : '';
+
+            if (!selectedId || !nominal || !area) {
+                alert('Pilih pelanggan dan area terlebih dahulu!');
                 return;
             }
 
@@ -358,7 +386,8 @@
                     nominal: parseInt(nominal),
                     metode: metode,
                     bukti: buktiBase64,
-                    status: 'Lunas'
+                    status: 'Lunas',
+                    area: area
                 }).then(() => {
                     // b. Update Jatuh Tempo (tambah 1 bulan) pada Pelanggan
                     let jtDate = new Date(client.jatuhTempo);
@@ -523,6 +552,11 @@
         // Panggil render awal saat halaman dimuat
         renderTabelPembayaran();
         
+        function logout(e) {
+            e.preventDefault();
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
     </script>
 </body>
-</html>
+</html>
