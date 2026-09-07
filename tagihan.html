@@ -140,10 +140,51 @@
         menuBtn.addEventListener('click', toggleSidebar);
         overlay.addEventListener('click', toggleSidebar);
 
+        const FONNTE_TOKEN = "9cKNttPvb2Fhe8kC5KBR";
+
         // Fungsi Kirim WA
-        function kirimWA() {
-            // Munculkan notifikasi alert bawaan browser
-            alert("Tindakan berhasil: Pesan tagihan telah dikirim ke klien.");
+        function kirimWA(namaPelanggan, nomorWa, tanggalJatuhTempo, btnElement) {
+            const pesanWa = `Halo Kak *${namaPelanggan}*, \n\nIni adalah pengingat bahwa tagihan internet Anda akan jatuh tempo pada tanggal *${tanggalJatuhTempo}*. Mohon segera melakukan pembayaran ya kak. Terima kasih!`;
+            
+            // Set loading state
+            if (btnElement) {
+                btnElement.disabled = true;
+                btnElement.innerText = "Mengirim...";
+                btnElement.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+
+            fetch('https://api.fonnte.com/send', {
+                method: 'POST',
+                headers: {
+                    'Authorization': FONNTE_TOKEN,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    target: nomorWa,
+                    message: pesanWa,
+                    countryCode: '62'
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status) {
+                    alert(`Notifikasi tagihan untuk ${namaPelanggan} berhasil dikirim via WhatsApp!`);
+                } else {
+                    alert('Gagal mengirim pesan: ' + (result.reason || 'Terjadi kesalahan sistem.'));
+                }
+            })
+            .catch(error => {
+                console.error('Error Fonnte:', error);
+                alert('Gagal terhubung ke server Fonnte.');
+            })
+            .finally(() => {
+                // Reset loading state
+                if (btnElement) {
+                    btnElement.disabled = false;
+                    btnElement.innerText = "Kirim WA";
+                    btnElement.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            });
         }
 
         // Fungsi Matikan Koneksi / Konfirmasi Isolir
@@ -227,7 +268,7 @@
                     <td class="py-3 px-4 text-red-600 font-medium">${formatTanggalPendek(p.jatuhTempo)}</td>
                     <td class="py-3 px-4">
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <button class="bg-green-500 hover:bg-green-600 text-white font-medium py-1.5 px-3 rounded text-xs transition-colors shrink-0" onclick="kirimWA()">
+                            <button class="bg-green-500 hover:bg-green-600 text-white font-medium py-1.5 px-3 rounded text-xs transition-colors shrink-0" onclick="kirimWA('${p.nama.replace(/'/g, "\\'")}', '${p.noWa}', '${formatTanggalPendek(p.jatuhTempo)}', this)">
                                 Kirim WA
                             </button>
                             ${btnIsolirHtml}
