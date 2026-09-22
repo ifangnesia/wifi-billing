@@ -505,21 +505,23 @@
             btnSimpan.disabled = true;
             btnSimpan.textContent = "Menyimpan...";
 
-            const prosesSimpan = (buktiBase64) => {
-                db.collection('transaksi').add({
-                    idTransaksi: idTransaksi,
-                    tanggalTransaksi: tanggalTransaksi,
-                    timestamp: timestamp, // presisi
-                    idClient: client.idClient,
-                    namaClient: client.nama,
-                    odp: client.odp,
-                    nominal: parseInt(nominal),
-                    metode: metode,
-                    bukti: buktiBase64,
-                    status: 'Lunas',
-                    area: area,
-                    admin: adminName
-                }).then(() => {
+            const prosesSimpan = async (buktiBase64) => {
+                try {
+                    await db.collection('transaksi').add({
+                        idTransaksi: idTransaksi,
+                        tanggalTransaksi: tanggalTransaksi,
+                        timestamp: timestamp, // presisi
+                        idClient: client.idClient,
+                        namaClient: client.nama,
+                        odp: client.odp,
+                        nominal: parseInt(nominal),
+                        metode: metode,
+                        bukti: buktiBase64,
+                        status: 'Lunas',
+                        area: area,
+                        admin: adminName
+                    });
+
                     // Update Jatuh Tempo (+1 bulan)
                     let jtDate = new Date(client.jatuhTempo || Date.now());
                     jtDate.setMonth(jtDate.getMonth() + 1);
@@ -531,22 +533,42 @@
                     todayDateOnly.setHours(0,0,0,0);
                     const newStatus = (todayDateOnly > jtDateOnly) ? "Isolir" : "Aktif";
     
-                    return db.collection('pelanggan').doc(client.idDoc).update({
+                    await db.collection('pelanggan').doc(client.idDoc).update({
                         jatuhTempo: newJt,
                         status: newStatus,
                         isIsolir: false
                     });
-                }).then(() => {
+
+                    // Kirim WA Lunas via Fonnte
+                    if (client.noWa) {
+                        let formattedNumber = client.noWa.trim();
+                        if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.slice(1);
+                        
+                        const formatRp = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                        const pesanLunas = `Halo Kak ${client.nama},\n\nTerima kasih! Pembayaran untuk layanan internet Anda telah berhasil kami terima dan verifikasi oleh sistem.\n\nRincian transaksi Anda:\n· ID Client: ${client.idClient}\n· Paket Langganan: ${client.paket || '-'}\n· Nominal Dibayar: ${formatRp(nominal)}\n· Status: LUNAS (Aktif hingga periode berikutnya)\n\nNota/Invoice resmi transaksi ini dapat Anda unduh atau cetak langsung melalui sistem portal pelanggan kami.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 👉 https://fastidious-cheesecake-b66cea.netlify.app/form-ticket.html\n\nSelamat menikmati kembali koneksi internet cepat dari kami!\n\nIfangsnesia Customer Care`;
+                        
+                        try {
+                            const FONNTE_TOKEN = "9cKNttPvb2Fhe8kC5KBR";
+                            await fetch('https://api.fonnte.com/send', {
+                                method: 'POST',
+                                headers: { 'Authorization': FONNTE_TOKEN, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ target: formattedNumber, message: pesanLunas, countryCode: '62' })
+                            });
+                        } catch (e) {
+                            console.error("Gagal mengirim WA Lunas:", e);
+                        }
+                    }
+
                     btnSimpan.disabled = false;
                     btnSimpan.textContent = "Simpan";
                     tutupModal();
-                    alert('Pembayaran berhasil dicatat!');
-                }).catch((error) => {
+                    alert('Pembayaran berhasil dicatat & WA telah terkirim!');
+                } catch (error) {
                     console.error("Error saving payment: ", error);
                     btnSimpan.disabled = false;
                     btnSimpan.textContent = "Simpan";
                     alert("Gagal memproses pembayaran");
-                });
+                }
             };
 
             if (metode === 'Transfer') {

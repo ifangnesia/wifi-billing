@@ -270,14 +270,45 @@
         const FONNTE_TOKEN = "9cKNttPvb2Fhe8kC5KBR";
 
         // Fungsi Matikan Koneksi / Konfirmasi Isolir
-        function matikanKoneksi(idDoc) {
-            if (confirm("Konfirmasi: Apakah akses internet untuk klien ini sudah dimatikan di MikroTik?")) {
-                db.collection('pelanggan').doc(idDoc).update({
-                    isIsolir: true
-                }).catch((error) => {
+        async function matikanKoneksi(idDoc) {
+            if (confirm("Konfirmasi: Apakah Anda yakin akan mematikan koneksi klien ini (Isolir) dan mengirimkan notifikasi WA?")) {
+                try {
+                    const doc = await db.collection('pelanggan').doc(idDoc).get();
+                    if (!doc.exists) return alert('Data pelanggan tidak ditemukan!');
+                    
+                    const p = doc.data();
+                    
+                    await db.collection('pelanggan').doc(idDoc).update({
+                        isIsolir: true,
+                        status: 'Isolir'
+                    });
+
+                    // Kirim WA
+                    if (p.noWa) {
+                        let formattedNumber = p.noWa.trim();
+                        if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.slice(1);
+                        
+                        const formatRp = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                        const nominalTagihan = formatRp(parseNominal(p.nominalPaket));
+                        
+                        const pesanSuspensi = `Yth. Bapak/Ibu ${p.nama},\n\nKami informasikan bahwa masa aktif tagihan layanan internet Anda telah jatuh tempo hari ini. Agar layanan tidak terisolir (terputus otomatis oleh sistem), mohon segera melakukan penyelesaian pembayaran.\n\nRincian tagihan Anda:\n· ID Client: ${p.idClient}\n· Paket Langganan: ${p.paket}\n· Total Tagihan: ${nominalTagihan}\n· Status: Belum Lunas / Jatuh Tempo\n\nJika Anda sudah melakukan pembayaran, mohon abaikan pesan ini atau kirimkan bukti transfer ke balasan pesan ini.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 👉 https://fastidious-cheesecake-b66cea.netlify.app/form-ticket.html\n\nTerima kasih atas perhatian dan kerja samanya.\n\nIfangsnesia Customer Care`;
+                        
+                        try {
+                            await fetch('https://api.fonnte.com/send', {
+                                method: 'POST',
+                                headers: { 'Authorization': FONNTE_TOKEN, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ target: formattedNumber, message: pesanSuspensi, countryCode: '62' })
+                            });
+                        } catch (e) {
+                            console.error("Gagal mengirim WA Isolir:", e);
+                        }
+                    }
+                    
+                    alert("Koneksi berhasil dimatikan (di-isolir) dan notifikasi WA telah terkirim.");
+                } catch (error) {
                     console.error("Error updating document: ", error);
                     alert("Gagal memperbarui status pelanggan");
-                });
+                }
             }
         }
 
@@ -513,7 +544,10 @@
                 let formattedNumber = nomorWa.trim();
                 if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.slice(1);
 
-                const pesanWa = `Halo Kak *${namaPelanggan}*, \n\nIni adalah pengingat bahwa tagihan internet Anda akan jatuh tempo pada tanggal *${tanggalJatuhTempo}*. Mohon segera melakukan pembayaran ya kak. Terima kasih!`;
+                const idClient = row.getAttribute('data-inv-client');
+                const paket = row.getAttribute('data-inv-paket');
+                const totalTagihan = row.getAttribute('data-inv-total');
+                const pesanWa = `Halo Kak ${namaPelanggan},\n\nSalam hangat dari Ifangsnesia Customer Care.\n\nKami menginformasikan bahwa tagihan layanan internet Anda akan segera jatuh tempo dalam waktu dekat. \n\nBerikut adalah rincian tagihan Anda:\n· ID Client: ${idClient}\n· Paket Langganan: ${paket}\n· Total Tagihan: ${totalTagihan}\n· Tanggal Jatuh Tempo: ${tanggalJatuhTempo}\n\nSilakan melakukan pembayaran sebelum tanggal jatuh tempo agar koneksi internet Anda tetap terhubung dengan lancar tanpa gangguan isolir otomatis.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 👉 https://fastidious-cheesecake-b66cea.netlify.app/form-ticket.html\n\nTerima kasih telah menggunakan layanan kami.\n\nPesan otomatis oleh Sistem E-Billing Ifangsnesia`;
 
                 const originalText = btnWA.innerHTML;
                 btnWA.disabled = true;
@@ -625,21 +659,23 @@
 
             const clientData = dataPelanggan.find(p => p.idDoc === idDoc);
             
-            const prosesSimpan = (buktiBase64) => {
-                db.collection('transaksi').add({
-                    idTransaksi: idTransaksi,
-                    tanggalTransaksi: tanggalTransaksi,
-                    timestamp: timestamp,
-                    idClient: idClient,
-                    namaClient: nama,
-                    odp: odp,
-                    nominal: parseInt(nominal),
-                    metode: metode,
-                    bukti: buktiBase64,
-                    status: 'Lunas',
-                    area: area,
-                    admin: adminName
-                }).then(() => {
+            const prosesSimpan = async (buktiBase64) => {
+                try {
+                    await db.collection('transaksi').add({
+                        idTransaksi: idTransaksi,
+                        tanggalTransaksi: tanggalTransaksi,
+                        timestamp: timestamp,
+                        idClient: idClient,
+                        namaClient: nama,
+                        odp: odp,
+                        nominal: parseInt(nominal),
+                        metode: metode,
+                        bukti: buktiBase64,
+                        status: 'Lunas',
+                        area: area,
+                        admin: adminName
+                    });
+
                     // Update Jatuh Tempo (+1 bulan)
                     let jtDate = new Date(clientData.jatuhTempo || Date.now());
                     jtDate.setMonth(jtDate.getMonth() + 1);
@@ -651,22 +687,41 @@
                     todayDateOnly.setHours(0,0,0,0);
                     const newStatus = (todayDateOnly > jtDateOnly) ? "Isolir" : "Aktif";
     
-                    return db.collection('pelanggan').doc(idDoc).update({
+                    await db.collection('pelanggan').doc(idDoc).update({
                         jatuhTempo: newJt,
                         status: newStatus,
                         isIsolir: false
                     });
-                }).then(() => {
+
+                    // Kirim WA Lunas via Fonnte
+                    if (clientData.noWa) {
+                        let formattedNumber = clientData.noWa.trim();
+                        if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.slice(1);
+                        
+                        const formatRp = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                        const pesanLunas = `Halo Kak ${nama},\n\nTerima kasih! Pembayaran untuk layanan internet Anda telah berhasil kami terima dan verifikasi oleh sistem.\n\nRincian transaksi Anda:\n· ID Client: ${idClient}\n· Paket Langganan: ${clientData.paket || '-'}\n· Nominal Dibayar: ${formatRp(nominal)}\n· Status: LUNAS (Aktif hingga periode berikutnya)\n\nNota/Invoice resmi transaksi ini dapat Anda unduh atau cetak langsung melalui sistem portal pelanggan kami.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 👉 https://fastidious-cheesecake-b66cea.netlify.app/form-ticket.html\n\nSelamat menikmati kembali koneksi internet cepat dari kami!\n\nIfangsnesia Customer Care`;
+                        
+                        try {
+                            await fetch('https://api.fonnte.com/send', {
+                                method: 'POST',
+                                headers: { 'Authorization': FONNTE_TOKEN, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ target: formattedNumber, message: pesanLunas, countryCode: '62' })
+                            });
+                        } catch (e) {
+                            console.error("Gagal mengirim WA Lunas:", e);
+                        }
+                    }
+
                     btnSimpan.disabled = false;
                     btnSimpan.textContent = "Simpan";
                     tutupModal();
-                    alert('Pembayaran berhasil dicatat!');
-                }).catch((error) => {
+                    alert('Pembayaran berhasil dicatat & WA telah terkirim!');
+                } catch (error) {
                     console.error("Error: ", error);
                     btnSimpan.disabled = false;
                     btnSimpan.textContent = "Simpan";
                     alert("Gagal memproses pembayaran");
-                });
+                }
             };
 
             if (metode === 'Transfer') {
