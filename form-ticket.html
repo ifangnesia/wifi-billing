@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulir Pengaduan Pelanggan - E-Billing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Mobile Wrapper Card -->
+    <div class="bg-white w-full max-w-[480px] rounded-2xl shadow-xl overflow-hidden flex flex-col relative">
+        
+        <!-- Header -->
+        <div class="bg-purple-600 px-6 py-6 text-center shrink-0">
+            <h1 class="text-xl font-bold text-white">E-Billing Support</h1>
+            <p class="text-purple-100 text-sm mt-1">Layanan Pengaduan & Bantuan Pelanggan</p>
+        </div>
+
+        <div class="p-6 md:p-8 flex-1">
+            
+            <!-- TAHAP 1: Verifikasi ID Client -->
+            <div id="phase-1-verify">
+                <h2 class="text-lg font-bold text-gray-800 mb-4 text-center">Verifikasi Pelanggan E-Billing</h2>
+                
+                <form id="form-verify" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Masukkan ID Client Anda</label>
+                        <input type="text" id="verify-id" placeholder="Contoh: 2609070201" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow" required>
+                        <p id="verify-error" class="text-red-500 text-sm mt-1 font-medium hidden">tidak sesuai</p>
+                    </div>
+                    
+                    <button type="submit" id="btn-verify" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-purple-700 transition-colors flex justify-center items-center gap-2">
+                        <span>Verifikasi / Masuk</span>
+                    </button>
+                </form>
+            </div>
+
+
+            <!-- TAHAP 2: Form Utama Pengaduan -->
+            <div id="phase-2-form" class="hidden">
+                <h2 class="text-lg font-bold text-gray-800 mb-5 border-b pb-2">Formulir Pengaduan</h2>
+                
+                <form id="form-complaint" class="space-y-4">
+                    <!-- Read Only Klien Info -->
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-2 mb-4">
+                        <div>
+                            <p class="text-xs text-gray-500 font-medium">Nama Pelanggan</p>
+                            <p id="display-nama" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 font-medium">ID Client</p>
+                            <p id="display-id" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 font-medium">Paket Langganan</p>
+                            <p id="display-paket" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 font-medium">Alamat</p>
+                            <p id="display-alamat" class="text-sm font-bold text-gray-800">-</p>
+                        </div>
+                    </div>
+
+                    <!-- Input Fields -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">No. WhatsApp Aktif</label>
+                        <input type="tel" id="input-wa" placeholder="Contoh: 08123456789" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Kategori Kendala</label>
+                        <select id="input-kategori" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow bg-white" required>
+                            <option value="" disabled selected>-- Pilih Kategori Kendala --</option>
+                            <option value="Internet Mati / LOS Merah / Ranting Putus">Internet Mati / LOS Merah / Ranting Putus</option>
+                            <option value="Koneksi Lambat / Lemot">Koneksi Lambat / Lemot</option>
+                            <option value="Masalah Tagihan / Pembayaran">Masalah Tagihan / Pembayaran</option>
+                            <option value="Kendala Lainnya">Kendala Lainnya</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi Detail</label>
+                        <textarea id="input-deskripsi" rows="3" placeholder="Jelaskan detail keluhan atau kronologinya..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow" required></textarea>
+                    </div>
+                    
+                    <button type="submit" id="btn-submit-complaint" class="w-full bg-purple-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200 mt-6 flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                        </svg>
+                        <span>Kirim Laporan Pengaduan</span>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzXiIDFpYYP56ynQjStCT4bV9IcGl4kXI",
+            authDomain: "e-billingthom.firebaseapp.com",
+            projectId: "e-billingthom",
+            storageBucket: "e-billingthom.firebasestorage.app",
+            messagingSenderId: "450682516112",
+            appId: "1:450682516112:web:0c3f64868be3a6c7c76215"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Elemen DOM
+        const phase1 = document.getElementById('phase-1-verify');
+        const phase2 = document.getElementById('phase-2-form');
+        const formVerify = document.getElementById('form-verify');
+        const verifyError = document.getElementById('verify-error');
+        const btnVerify = document.getElementById('btn-verify');
+        
+        const formComplaint = document.getElementById('form-complaint');
+        const btnSubmit = document.getElementById('btn-submit-complaint');
+
+        let currentClientData = null;
+
+        // TAHAP 1: Verifikasi
+        formVerify.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const idClient = document.getElementById('verify-id').value.trim();
+            if (!idClient) return;
+
+            verifyError.classList.add('hidden');
+            btnVerify.disabled = true;
+            btnVerify.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memverifikasi...`;
+
+            try {
+                // Cari data pelanggan berdasarkan idClient
+                const snapshot = await db.collection('pelanggan').where('idClient', '==', idClient).limit(1).get();
+                
+                if (snapshot.empty) {
+                    // ID Client Salah / Tidak Ditemukan
+                    verifyError.classList.remove('hidden');
+                    btnVerify.disabled = false;
+                    btnVerify.innerHTML = `<span>Verifikasi / Masuk</span>`;
+                } else {
+                    // ID Client Ditemukan
+                    currentClientData = snapshot.docs[0].data();
+                    
+                    // Isi DOM Phase 2
+                    document.getElementById('display-nama').textContent = currentClientData.nama || '-';
+                    document.getElementById('display-id').textContent = currentClientData.idClient || '-';
+                    document.getElementById('display-paket').textContent = currentClientData.paket || '-';
+                    document.getElementById('display-alamat').textContent = currentClientData.alamat || '-';
+                    
+                    // Transisi UI
+                    phase1.classList.add('hidden');
+                    phase2.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Error verifying client:", err);
+                alert("Terjadi kesalahan sistem. Silakan coba lagi nanti.");
+                btnVerify.disabled = false;
+                btnVerify.innerHTML = `<span>Verifikasi / Masuk</span>`;
+            }
+        });
+
+        // TAHAP 2 & 3: Submit Form & Fonnte API
+        formComplaint.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const noWa = document.getElementById('input-wa').value.trim();
+            const kategori = document.getElementById('input-kategori').value;
+            const deskripsi = document.getElementById('input-deskripsi').value.trim();
+
+            if (!noWa || !kategori || !deskripsi) return alert("Harap lengkapi semua field!");
+
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memproses...`;
+
+            try {
+                // Simpan ke Firestore
+                const ticketData = {
+                    tglMasuk: new Date().toISOString(),
+                    namaKlien: currentClientData.nama,
+                    idClient: currentClientData.idClient,
+                    alamat: currentClientData.alamat,
+                    paket: currentClientData.paket,
+                    noWa: noWa,
+                    kategori: kategori,
+                    kendala: deskripsi,
+                    status: 'Open'
+                };
+
+                await db.collection('tickets').add(ticketData);
+
+                // Format Teks WA Fonnte
+                const targetWA = "6287855545469";
+                const waText = `🔔 *NOTIFIKASI TIKET GANGGUAN BARU*\n\n` +
+                               `*ID Client:* ${ticketData.idClient}\n` +
+                               `*Nama Pelanggan:* ${ticketData.namaKlien}\n` +
+                               `*Alamat Lokasi:* ${ticketData.alamat}\n` +
+                               `*Paket Langganan:* ${ticketData.paket}\n` +
+                               `*No. WA Klien:* ${ticketData.noWa}\n` +
+                               `*Kategori Kendala:* ${ticketData.kategori}\n` +
+                               `*Deskripsi Detail:* ${ticketData.kendala}\n\n` +
+                               `_Pesan ini dikirim otomatis oleh Sistem E-Billing Support._`;
+
+                // Kirim Notifikasi via Fonnte
+                const formData = new FormData();
+                formData.append('target', targetWA);
+                formData.append('message', waText);
+
+                await fetch('https://api.fonnte.com/send', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': '9cKNttPvb2Fhe8kC5KBR'
+                    },
+                    body: formData
+                });
+
+                // Tampilkan sukses
+                alert("Laporan pengaduan Anda berhasil dikirim ke tim teknisi kami. Kami akan segera menghubungi Anda.");
+                
+                // Reset halaman
+                window.location.reload();
+                
+            } catch (err) {
+                console.error("Error saving/sending ticket:", err);
+                alert("Gagal mengirim laporan ke sistem. Mohon ulangi kembali.");
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = `<span>Kirim Laporan Pengaduan</span>`;
+            }
+        });
+
+    </script>
+</body>
+</html>

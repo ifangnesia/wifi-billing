@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Paket - Wi-Fi Billing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased flex h-screen overflow-hidden">
+
+    <!-- Mobile Header & Hamburger -->
+    <div class="md:hidden fixed w-full bg-white shadow-sm z-50 flex items-center justify-between p-4">
+        <div class="text-lg font-bold text-purple-600">Wi-Fi Billing</div>
+        <button id="menu-btn" class="text-gray-600 hover:text-gray-900 focus:outline-none">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="bg-white w-[250px] h-full border-r border-gray-200 flex flex-col absolute md:relative z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out pt-16 md:pt-0 shrink-0">
+        <div class="hidden md:flex items-center justify-center h-16 border-b border-gray-200 shrink-0">
+            <img src="PURPLEIFANGNESIA.PNG" alt="Logo" class="h-8 w-auto">
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="kelola-pelanggan.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                </svg>
+                <span>Kelola Pelanggan</span>
+            </a>
+            <a href="input-pembayaran.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                </svg>
+                <span>Input Pembayaran</span>
+            </a>
+            <a href="tagihan.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
+                </svg>
+                <span>Tagihan</span>
+            </a>
+            <a href="riwayat-transaksi.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+                <span>Riwayat Transaksi</span>
+            </a>
+            <a href="profile.html" class="flex items-center gap-3 px-4 py-3 bg-purple-50 text-purple-700 font-bold rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-purple-700">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                </svg>
+                <span>Profile (Paket)</span>
+            </a>
+            <a href="ticket.html" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                </svg>
+                <span>Ticket</span>
+            </a>
+        </nav>
+        <!-- Footer -->
+        <div class="p-4 border-t border-gray-200 mt-auto shrink-0">
+            <a href="#" onclick="logout(event)" class="block text-red-500 font-bold hover:text-red-700 cursor-pointer">KELUAR</a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden pt-16 md:pt-0">
+        
+        <header class="bg-white shadow-sm px-4 md:px-8 py-5 shrink-0 z-10 relative flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-800">Manajemen Paket Langganan</h2>
+            <button type="button" id="btnTambahProfile" class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                New Profile
+            </button>
+        </header>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 space-y-6 pb-12">
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider">
+                            <tr>
+                                <th class="py-4 px-6 font-semibold w-16">No</th>
+                                <th class="py-4 px-6 font-semibold">Name (Paket)</th>
+                                <th class="py-4 px-6 font-semibold">Price (Rp)</th>
+                                <th class="py-4 px-6 font-semibold">Rate Limit / Keterangan</th>
+                                <th class="py-4 px-6 font-semibold text-center w-28">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-profiles" class="text-sm text-gray-700 divide-y divide-gray-50">
+                            <tr><td colspan="5" class="py-12 text-center text-gray-500 italic">Memuat data paket...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Form Profile -->
+    <div id="modal-profile" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-purple-50 rounded-t-xl">
+                <h3 id="modal-title" class="text-lg font-bold text-gray-800">Tambah Paket</h3>
+                <button id="btn-tutup-modal" class="text-gray-400 hover:text-gray-600 focus:outline-none bg-white p-1 rounded-full">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <form id="form-profile" class="space-y-4">
+                    <input type="hidden" id="input-id">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Paket</label>
+                        <input type="text" id="input-name" placeholder="Contoh: UPTO 5 Rp. 100.000" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Harga (Price)</label>
+                        <input type="text" id="input-price" placeholder="Contoh: 155.000" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Rate Limit / Keterangan</label>
+                        <input type="text" id="input-limit" placeholder="Contoh: 5M/5M" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                </form>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-xl">
+                <button type="button" id="btn-batal" class="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">Batal</button>
+                <button type="button" id="btn-simpan" class="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- JavaScript -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzXiIDFpYYP56ynQjStCT4bV9IcGl4kXI",
+            authDomain: "e-billingthom.firebaseapp.com",
+            projectId: "e-billingthom",
+            storageBucket: "e-billingthom.firebasestorage.app",
+            messagingSenderId: "450682516112",
+            appId: "1:450682516112:web:0c3f64868be3a6c7c76215"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // RBAC check
+        const userRole = localStorage.getItem('userRole');
+        if (!userRole) {
+            window.location.href = 'index.html';
+        }
+        if (userRole === 'sales') {
+            alert('Akses Ditolak: Anda tidak memiliki wewenang untuk mengatur paket berlangganan.');
+            window.location.href = 'dashboard.html';
+        }
+
+        // Format Rp
+        const formatRupiah = (angka) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        };
+
+        const tabelBody = document.getElementById('tabel-profiles');
+        let dataProfiles = [];
+
+        // Real-time Fetch
+        db.collection('profiles').onSnapshot((snapshot) => {
+            dataProfiles = [];
+            snapshot.forEach(doc => {
+                dataProfiles.push({ id: doc.id, ...doc.data() });
+            });
+            renderTable();
+        });
+
+        function renderTable() {
+            if (dataProfiles.length === 0) {
+                tabelBody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-gray-500 italic">Belum ada data paket.</td></tr>';
+                return;
+            }
+            
+            // Sort by price
+            dataProfiles.sort((a,b) => (a.price || 0) - (b.price || 0));
+
+            let html = '';
+            dataProfiles.forEach((p, i) => {
+                html += `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="py-4 px-6">${i + 1}</td>
+                        <td class="py-4 px-6 font-medium text-gray-900">${p.name}</td>
+                        <td class="py-4 px-6 font-semibold text-blue-600">${formatRupiah(p.price || 0)}</td>
+                        <td class="py-4 px-6">${p.limit || '-'}</td>
+                        <td class="py-4 px-6 text-center">
+                            <div class="flex justify-center gap-2">
+                                <button class="btn-edit p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" data-id="${p.id}">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </button>
+                                <button class="btn-delete p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" data-id="${p.id}">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            tabelBody.innerHTML = html;
+        }
+
+        // Modal Logic
+        const modal = document.getElementById('modal-profile');
+        const form = document.getElementById('form-profile');
+        const btnTambah = document.getElementById('btnTambahProfile');
+        
+        btnTambah.addEventListener('click', () => {
+            document.getElementById('modal-title').textContent = 'Tambah Paket';
+            form.reset();
+            document.getElementById('input-id').value = '';
+            modal.classList.remove('hidden');
+        });
+
+        const tutupModal = () => modal.classList.add('hidden');
+        document.getElementById('btn-tutup-modal').addEventListener('click', tutupModal);
+        document.getElementById('btn-batal').addEventListener('click', tutupModal);
+
+        // Real-time formatter untuk input harga
+        const inputPrice = document.getElementById('input-price');
+        inputPrice.addEventListener('input', function(e) {
+            let val = this.value.replace(/[^0-9]/g, '');
+            if (val) {
+                this.value = parseInt(val, 10).toLocaleString('id-ID');
+            } else {
+                this.value = '';
+            }
+        });
+
+        document.getElementById('btn-simpan').addEventListener('click', async () => {
+            const id = document.getElementById('input-id').value;
+            const name = document.getElementById('input-name').value;
+            const rawPrice = document.getElementById('input-price').value.replace(/[^0-9]/g, '');
+            const price = parseInt(rawPrice, 10);
+            const limit = document.getElementById('input-limit').value;
+
+            if (!name || isNaN(price)) return alert('Nama dan Harga wajib diisi dengan benar!');
+
+            const btn = document.getElementById('btn-simpan');
+            btn.disabled = true; btn.textContent = 'Menyimpan...';
+
+            try {
+                if (id) {
+                    await db.collection('profiles').doc(id).update({ name, price, limit });
+                } else {
+                    await db.collection('profiles').add({ name, price, limit });
+                }
+                tutupModal();
+            } catch (err) {
+                console.error(err);
+                alert('Gagal menyimpan profil');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Simpan';
+            }
+        });
+
+        // Edit & Delete Event Delegation
+        tabelBody.addEventListener('click', async (e) => {
+            const btnEdit = e.target.closest('.btn-edit');
+            if (btnEdit) {
+                const id = btnEdit.getAttribute('data-id');
+                const p = dataProfiles.find(x => x.id === id);
+                if (p) {
+                    document.getElementById('modal-title').textContent = 'Edit Paket';
+                    document.getElementById('input-id').value = p.id;
+                    document.getElementById('input-name').value = p.name;
+                    document.getElementById('input-price').value = (p.price || 0).toLocaleString('id-ID');
+                    document.getElementById('input-limit').value = p.limit || '';
+                    modal.classList.remove('hidden');
+                }
+                return;
+            }
+
+            const btnDel = e.target.closest('.btn-delete');
+            if (btnDel) {
+                if (confirm('Yakin ingin menghapus paket ini?')) {
+                    const id = btnDel.getAttribute('data-id');
+                    await db.collection('profiles').doc(id).delete();
+                }
+            }
+        });
+
+        // Mobile Sidebar
+        const btnMenu = document.getElementById('menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        function toggleSidebar() {
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+        btnMenu.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', toggleSidebar);
+        
+        function logout(e) {
+            e.preventDefault();
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
