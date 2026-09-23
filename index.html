@@ -107,6 +107,7 @@
                         errorMessage.classList.add('hidden');
                         
                         // Simpan role dan area ke localStorage
+                        localStorage.setItem('isLoggedIn', 'true');
                         localStorage.setItem('userRole', userData.role);
                         localStorage.setItem('userArea', userData.area);
                         localStorage.setItem('username', username);

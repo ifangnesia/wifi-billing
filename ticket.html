@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <script>
+        // Cek status autentikasi admin pada sesi browser
+        const authStatus = sessionStorage.getItem('isLoggedIn') || localStorage.getItem('isLoggedIn');
+        if (!authStatus || authStatus !== 'true') {
+            // Jika belum login atau status palsu, redirect paksa ke halaman login utama
+            window.location.replace('index.html');
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manajemen Ticket - Wi-Fi Billing</title>
@@ -160,10 +168,6 @@
 
     <!-- JavaScript -->
     <script>
-        // Auth Guard
-        if (!localStorage.getItem('userRole') || !localStorage.getItem('username')) {
-            window.location.replace('index.html');
-        }
         const firebaseConfig = {
             apiKey: "AIzaSyAzXiIDFpYYP56ynQjStCT4bV9IcGl4kXI",
             authDomain: "e-billingthom.firebaseapp.com",
