@@ -374,6 +374,10 @@
 
     <!-- JavaScript -->
     <script>
+        // Auth Guard
+        if (!localStorage.getItem('userRole') || !localStorage.getItem('username')) {
+            window.location.replace('index.html');
+        }
         // Sidebar Toggle Mobile
         const menuBtn = document.getElementById('menu-btn');
         const sidebar = document.getElementById('sidebar');

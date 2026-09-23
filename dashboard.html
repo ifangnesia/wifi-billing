@@ -204,6 +204,10 @@
 
     <!-- JavaScript -->
     <script>
+        // Auth Guard
+        if (!localStorage.getItem('userRole') || !localStorage.getItem('username')) {
+            window.location.replace('index.html');
+        }
         // Konfigurasi Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAzXiIDFpYYP56ynQjStCT4bV9IcGl4kXI",
