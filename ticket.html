@@ -184,10 +184,6 @@
         if (!userRole) {
             window.location.href = 'index.html';
         }
-        if (userRole === 'sales') {
-            alert('Akses Ditolak: Anda tidak memiliki wewenang untuk mengakses halaman ini.');
-            window.location.href = 'dashboard.html';
-        }
 
         // Format Rp
         const formatRupiah = (angka) => {
