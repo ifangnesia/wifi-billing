@@ -954,11 +954,13 @@
                 const yy = parts[0].substring(2);
                 const mm = parts[1];
                 const dd = parts[2];
-                const odpPadded = odp.toString().padStart(2, '0');
                 
-                const countSameOdp = pelangganData.filter(x => x.odp === odp).length;
-                const sequence = (countSameOdp + 1).toString().padStart(2, '0');
-                const idClient = `${yy}${mm}${dd}${odpPadded}${sequence}`;
+                const areaCodeMap = { "BIN": "02", "BRS": "03", "BGL": "04", "YNT": "05" };
+                const kodeArea = areaCodeMap[area] || "99";
+                
+                const countSameArea = pelangganData.filter(x => x.area === area).length;
+                const sequence = (countSameArea + 1).toString().padStart(2, '0');
+                const idClient = `${yy}${mm}${dd}${kodeArea}${sequence}`;
 
                 db.collection('pelanggan').add({
                     idClient: idClient, nama: nama, noWa: wa, alamat: alamat, detailAlamat: detailAlamat,
@@ -1165,8 +1167,12 @@
                             const yy = String(now.getFullYear()).substring(2,4);
                             const mm = String(now.getMonth() + 1).padStart(2, '0');
                             const dd = String(now.getDate()).padStart(2, '0');
-                            const randomSeq = Math.floor(Math.random() * 9000 + 1000);
-                            const idClient = `${yy}${mm}${dd}000${randomSeq}`;
+                            
+                            const areaCodeMap = { "BIN": "02", "BRS": "03", "BGL": "04", "YNT": "05" };
+                            const kodeArea = areaCodeMap[importArea] || "99";
+                            const countSameArea = pelangganData.filter(x => x.area === importArea).length;
+                            const sequence = (countSameArea + count + 1).toString().padStart(2, '0');
+                            const idClient = `${yy}${mm}${dd}${kodeArea}${sequence}`;
 
                             const newDocRef = db.collection('pelanggan').doc();
                             batch.set(newDocRef, {
@@ -1211,6 +1217,42 @@
                 event.target.value = '';
             }
         }
+        window.migrateIdGlobal = async function() {
+            const areaCodeMap = { "BIN": "02", "BRS": "03", "BGL": "04", "YNT": "05" };
+            const pelSnap = await db.collection('pelanggan').get();
+            const batch = db.batch();
+            let updateCount = 0;
+            
+            for (const doc of pelSnap.docs) {
+                const data = doc.data();
+                const oldId = data.idClient;
+                if (!oldId || oldId.length < 10) continue;
+                
+                const tanggalPart = oldId.substring(0, 6);
+                const newAreaPart = areaCodeMap[data.area] || "99";
+                const urutanPart = oldId.substring(oldId.length - 2);
+                const newId = tanggalPart + newAreaPart + urutanPart;
+                
+                if (oldId !== newId) {
+                    batch.update(doc.ref, { idClient: newId });
+                    
+                    const ticketSnap = await db.collection('tickets').where('idClient', '==', oldId).get();
+                    ticketSnap.forEach(tDoc => batch.update(tDoc.ref, { idClient: newId }));
+                    
+                    const txSnap = await db.collection('transaksi').where('idClient', '==', oldId).get();
+                    txSnap.forEach(txDoc => batch.update(txDoc.ref, { idClient: newId }));
+                    
+                    updateCount++;
+                }
+            }
+            
+            if (updateCount > 0) {
+                await batch.commit();
+                alert(`Migrasi Selesai! ${updateCount} klien dan riwayatnya (Tiket & Transaksi) berhasil diperbarui.`);
+            } else {
+                alert('Tidak ada klien yang perlu dimigrasi.');
+            }
+        };
     </script>
 </body>
 </html>
