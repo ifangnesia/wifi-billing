@@ -193,13 +193,21 @@
                     noWa: noWa,
                     kategori: kategori,
                     kendala: deskripsi,
-                    status: 'Open'
+                    status: 'Open',
+                    area: currentClientData.area
                 };
 
                 await db.collection('tickets').add(ticketData);
 
                 // Format Teks WA Fonnte
-                const targetWA = "6287855545469";
+                const salesWaMap = {
+                    "BIN": "6289529526628",
+                    "BGL": "6287738927997",
+                    "BRS": "6281318004003",
+                    "YNT": "6282311669584"
+                };
+                const areaKlien = currentClientData.area;
+                const targetWA = salesWaMap[areaKlien] || "6287855545469";
                 const waText = `🔔 *NOTIFIKASI TIKET GANGGUAN BARU*\n\n` +
                                `*ID Client:* ${ticketData.idClient}\n` +
                                `*Nama Pelanggan:* ${ticketData.namaKlien}\n` +
