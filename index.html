@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <script>
+        // Pencegahan Reverse Login: Jika user sudah memiliki sesi valid, langsung arahkan ke dashboard
+        const authStatus = sessionStorage.getItem('isLoggedIn') || localStorage.getItem('isLoggedIn');
+        if (authStatus === 'true') {
+            window.location.replace('dashboard.html');
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Wi-Fi Billing</title>
