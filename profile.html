@@ -112,6 +112,7 @@
                                 <th class="py-4 px-6 font-semibold">Name (Paket)</th>
                                 <th class="py-4 px-6 font-semibold">Price (Rp)</th>
                                 <th class="py-4 px-6 font-semibold">Rate Limit / Keterangan</th>
+                                <th id="th-area" class="py-4 px-6 font-semibold text-center hidden">Area / Pemilik</th>
                                 <th class="py-4 px-6 font-semibold text-center w-28">Action</th>
                             </tr>
                         </thead>
@@ -180,12 +181,9 @@
 
         // RBAC check
         const userRole = localStorage.getItem('userRole');
+        const userArea = localStorage.getItem('userArea') || 'Semua Area';
         if (!userRole) {
             window.location.href = 'index.html';
-        }
-        if (userRole === 'sales') {
-            alert('Akses Ditolak: Anda tidak memiliki wewenang untuk mengatur paket berlangganan.');
-            window.location.href = 'dashboard.html';
         }
 
         // Format Rp
@@ -196,8 +194,14 @@
         const tabelBody = document.getElementById('tabel-profiles');
         let dataProfiles = [];
 
+        // Dynamic Fetch Query
+        let profilesQuery = db.collection('profiles');
+        if (userRole !== 'master' && userRole !== 'masteradmin' && userArea && userArea !== 'Semua Area') {
+            profilesQuery = profilesQuery.where('area', '==', userArea);
+        }
+
         // Real-time Fetch
-        db.collection('profiles').onSnapshot((snapshot) => {
+        profilesQuery.onSnapshot((snapshot) => {
             dataProfiles = [];
             snapshot.forEach(doc => {
                 dataProfiles.push({ id: doc.id, ...doc.data() });
@@ -206,8 +210,13 @@
         });
 
         function renderTable() {
+            const isMaster = userRole === 'master' || userRole === 'masteradmin';
+            const thArea = document.getElementById('th-area');
+            if (isMaster && thArea) thArea.classList.remove('hidden');
+
+            const colspan = isMaster ? "6" : "5";
             if (dataProfiles.length === 0) {
-                tabelBody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-gray-500 italic">Belum ada data paket.</td></tr>';
+                tabelBody.innerHTML = `<tr><td colspan="${colspan}" class="py-8 text-center text-gray-500 italic">Belum ada data paket.</td></tr>`;
                 return;
             }
             
@@ -216,12 +225,14 @@
 
             let html = '';
             dataProfiles.forEach((p, i) => {
+                const areaCell = isMaster ? `<td class="py-4 px-6 text-center text-xs font-medium text-gray-500"><span class="bg-purple-50 text-purple-600 px-2 py-1 rounded-md border border-purple-100">${p.area || 'Semua Area'}</span></td>` : '';
                 html += `
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="py-4 px-6">${i + 1}</td>
                         <td class="py-4 px-6 font-medium text-gray-900">${p.name}</td>
                         <td class="py-4 px-6 font-semibold text-blue-600">${formatRupiah(p.price || 0)}</td>
                         <td class="py-4 px-6">${p.limit || '-'}</td>
+                        ${areaCell}
                         <td class="py-4 px-6 text-center">
                             <div class="flex justify-center gap-2">
                                 <button class="btn-edit p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" data-id="${p.id}">
@@ -281,7 +292,7 @@
                 if (id) {
                     await db.collection('profiles').doc(id).update({ name, price, limit });
                 } else {
-                    await db.collection('profiles').add({ name, price, limit });
+                    await db.collection('profiles').add({ name, price, limit, area: userArea });
                 }
                 tutupModal();
             } catch (err) {
