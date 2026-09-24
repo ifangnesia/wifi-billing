@@ -19,6 +19,8 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased flex h-screen overflow-hidden">
 
@@ -105,7 +107,8 @@
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Ekspor
                 </button>
-                <button onclick="alert('Fitur Impor Data belum tersedia/masih dalam pengembangan.')" class="hidden md:flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                <input type="file" id="importFile" accept=".csv, .xlsx, .xls" class="hidden" onchange="handleImportExcel(event)" />
+                <button onclick="document.getElementById('importFile').click()" class="hidden md:flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12"></path></svg>
                     Impor
                 </button>
@@ -200,7 +203,7 @@
                                 </th>
                                 <th class="py-4 px-4 font-semibold">ID & Nama</th>
                                 <th class="py-4 px-4 font-semibold">Kontak</th>
-                                <th class="py-4 px-4 font-semibold">Area & ODP</th>
+                                <th class="py-4 px-4 font-semibold">Area & Detail Alamat</th>
                                 <th class="py-4 px-4 font-semibold">Paket</th>
                                 <th class="py-4 px-4 font-semibold">Jatuh Tempo</th>
                                 <th class="py-4 px-4 font-semibold">Status</th>
@@ -861,7 +864,7 @@
                     <td class="py-4 px-4 text-sm text-gray-600">${p.noWa}</td>
                     <td class="py-4 px-4">
                         <div class="text-sm text-gray-800">${p.area || '-'}</div>
-                        <div class="text-xs text-gray-500 mt-0.5 font-medium">ODP ${p.odp}</div>
+                        <div class="text-xs text-gray-500 mt-0.5 font-medium">${p.detailAlamat || '-'}</div>
                     </td>
                     <td class="py-4 px-4 text-sm text-gray-700">${p.paket}</td>
                     <td class="py-4 px-4 text-sm text-gray-600">${formatTanggal(p.jatuhTempo)}</td>
@@ -1031,6 +1034,182 @@
             e.preventDefault();
             localStorage.clear();
             window.location.href = 'index.html';
+        }
+        async function handleImportExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            let importArea = localStorage.getItem('userArea');
+            if (!importArea || importArea === 'Semua Area' || importArea === 'masteradmin') {
+                const { value: areaInput } = await Swal.fire({
+                    title: 'Pilih Area',
+                    input: 'select',
+                    inputOptions: {
+                        'BIN': 'Bintara (BIN)',
+                        'BGL': 'Bagasasi (BGL)',
+                        'CKG': 'Cikarang (CKG)'
+                    },
+                    inputPlaceholder: 'Pilih Area untuk Data ini',
+                    showCancelButton: true,
+                    inputValidator: (value) => {
+                        if (!value) return 'Anda harus memilih area!';
+                    }
+                });
+                if (!areaInput) {
+                    event.target.value = '';
+                    return;
+                }
+                importArea = areaInput;
+            }
+
+            Swal.fire({ title: 'Memproses Data...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const profilesSnap = await db.collection('profiles').get();
+                const validPackages = [];
+                profilesSnap.forEach(doc => {
+                    validPackages.push({ nama: doc.data().namaProfile, harga: doc.data().hargaProfile });
+                });
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                        if (rows.length < 2) {
+                            Swal.fire('Error', 'File kosong atau tidak memiliki data', 'error');
+                            return;
+                        }
+
+                        // Heuristic Column Mapping
+                        const numCols = rows.reduce((max, r) => Math.max(max, r.length), 0);
+                        let waIdx = -1, paketIdx = -1, namaIdx = -1;
+
+                        const isPhone = (val) => {
+                            if (val === undefined || val === null) return false;
+                            const cellValue = String(val).trim();
+                            if (!cellValue) return false;
+                            let s = cellValue.replace(/\D/g, '');
+                            if (s.startsWith('8') && s.length >= 9) s = '0' + s;
+                            return (s.startsWith('08') || s.startsWith('62')) && s.length >= 10 && s.length <= 14;
+                        };
+                        const isPaket = (val) => {
+                            if (val === undefined || val === null) return false;
+                            const cellValue = String(val).trim();
+                            if (!cellValue) return false;
+                            return cellValue.toLowerCase().includes('mbps');
+                        };
+                        const isText = (val) => {
+                            if (val === undefined || val === null) return false;
+                            const cellValue = String(val).trim();
+                            if (!cellValue) return false;
+                            return isNaN(val) && cellValue.length > 2;
+                        };
+
+                        for (let c = 0; c < numCols; c++) {
+                            let phoneC = 0, paketC = 0, textC = 0, total = 0;
+                            for (let r = 0; r < rows.length; r++) {
+                                const val = rows[r][c];
+                                if (val !== undefined && val !== null && String(val).trim() !== '') {
+                                    total++;
+                                    if (isPhone(val)) phoneC++;
+                                    else if (isPaket(val)) paketC++;
+                                    else if (isText(val)) textC++;
+                                }
+                            }
+                            if (total > 0) {
+                                if (phoneC / total > 0.3) waIdx = c;
+                                else if (paketC / total > 0.3) paketIdx = c;
+                                else if (textC / total > 0.3 && namaIdx === -1) namaIdx = c;
+                            }
+                        }
+
+                        if (namaIdx === -1 || waIdx === -1) {
+                            Swal.fire('Error', 'Sistem gagal mendeteksi kolom Nama dan Nomor HP/WA secara otomatis berdasarkan pola isi data.', 'error');
+                            return;
+                        }
+
+                        const batch = db.batch();
+                        let count = 0;
+                        let defaultPaketCount = 0;
+
+                        for (let i = 0; i < rows.length; i++) {
+                            const row = rows[i];
+                            // Skip row (like headers) if it doesn't have a valid phone pattern
+                            if (!row[waIdx] || !isPhone(row[waIdx])) continue;
+
+                            const nama = row[namaIdx] ? String(row[namaIdx]).trim() : '-';
+                            let noWaRaw = String(row[waIdx]).replace(/\D/g, '');
+                            if (noWaRaw.startsWith('8') && noWaRaw.length >= 9) noWaRaw = '0' + noWaRaw;
+                            
+                            let noWa = noWaRaw;
+                            if (noWa.startsWith('0')) noWa = '62' + noWa.slice(1);
+                            
+                            const paketExcel = paketIdx !== -1 && row[paketIdx] ? String(row[paketIdx]).trim() : '';
+
+                            let paketValid = "Belum Diatur";
+                            let nominalPaket = 0;
+                            const matched = validPackages.find(p => p.nama.toLowerCase() === paketExcel.toLowerCase());
+                            if (matched) {
+                                paketValid = matched.nama;
+                                nominalPaket = matched.harga;
+                            } else {
+                                defaultPaketCount++;
+                            }
+
+                            const now = new Date();
+                            const yy = String(now.getFullYear()).substring(2,4);
+                            const mm = String(now.getMonth() + 1).padStart(2, '0');
+                            const dd = String(now.getDate()).padStart(2, '0');
+                            const randomSeq = Math.floor(Math.random() * 9000 + 1000);
+                            const idClient = `${yy}${mm}${dd}000${randomSeq}`;
+
+                            const newDocRef = db.collection('pelanggan').doc();
+                            batch.set(newDocRef, {
+                                idClient: idClient,
+                                nama: nama,
+                                noWa: noWa,
+                                area: importArea,
+                                detailAlamat: "Hasil Impor Excel",
+                                alamat: "Hasil Impor Excel",
+                                latitude: 0,
+                                longitude: 0,
+                                odp: '0',
+                                paket: paketValid,
+                                nominalPaket: nominalPaket,
+                                jatuhTempo: '01',
+                                status: "Aktif",
+                                isIsolir: false,
+                                isInactive: false
+                            });
+                            count++;
+                        }
+
+                        await batch.commit();
+
+                        Swal.fire(
+                            'Impor Berhasil!', 
+                            `${count} Data masuk ke Area ${importArea}. ${defaultPaketCount > 0 ? `\nBeberapa paket (${defaultPaketCount}) diset ke 'Belum Diatur' karena tidak cocok dengan master data.` : ''}`,
+                            'success'
+                        );
+                        
+                    } catch (err) {
+                        console.error("Error Detail Impor:", err);
+                        Swal.fire('Error', 'Gagal memproses isi file Excel', 'error');
+                    } finally {
+                        event.target.value = '';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Error', 'Terjadi kesalahan sistem saat impor', 'error');
+                event.target.value = '';
+            }
         }
     </script>
 </body>

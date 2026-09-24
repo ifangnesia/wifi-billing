@@ -17,6 +17,8 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased flex h-screen overflow-hidden">
 
@@ -98,7 +100,7 @@
         <header class="bg-white shadow-sm px-4 md:px-8 py-5 shrink-0 z-10 relative flex justify-between items-center">
             <h2 class="text-xl font-bold text-gray-800">Riwayat Transaksi</h2>
             <div class="flex items-center gap-2">
-                <button type="button" id="btnBuatLaporan" class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm flex items-center gap-2" onclick="alert('Laporan sedang digenerate...')">
+                <button type="button" id="btnBuatLaporan" class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm flex items-center gap-2" onclick="generatePDF()">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Buat Laporan
                 </button>
@@ -278,8 +280,16 @@
         const roleQ = localStorage.getItem('userRole');
         const areaQ = localStorage.getItem('userArea');
 
-        if (roleQ === 'master') {
-            document.getElementById('filter-area').classList.remove('hidden');
+        const filterAreaDropdown = document.getElementById('filter-area');
+        if (roleQ === 'master' || roleQ === 'masteradmin') {
+            filterAreaDropdown.classList.remove('hidden');
+        } else if (roleQ === 'sales' && areaQ) {
+            filterAreaDropdown.classList.remove('hidden');
+            filterAreaDropdown.innerHTML = `<option value="${areaQ}">${areaQ}</option>`;
+            filterAreaDropdown.value = areaQ;
+            filterAreaDropdown.disabled = true;
+            filterAreaDropdown.classList.add('bg-gray-100', 'cursor-not-allowed');
+            filterArea = areaQ; // hardcode global var to default
         }
 
         // Fetching Data (Promise.all for quick initial load)
@@ -581,6 +591,85 @@
             e.preventDefault();
             localStorage.clear();
             window.location.href = 'index.html';
+        }
+        function generatePDF() {
+            if (typeof window.jspdf === 'undefined') {
+                alert('Library PDF belum dimuat.');
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+            
+            const pdfData = dataTransaksi.filter(tx => {
+                const inMonth = !filterMonth || (tx.tanggalTransaksi && tx.tanggalTransaksi.startsWith(filterMonth));
+                const inMetode = filterMetode === 'Semua' || tx.metode === filterMetode;
+                const inArea = filterArea === 'Semua' || tx.area === filterArea;
+                const inSearch = !searchQuery || (
+                    (tx.idTransaksi && tx.idTransaksi.toLowerCase().includes(searchQuery)) ||
+                    (tx.namaClient && tx.namaClient.toLowerCase().includes(searchQuery)) ||
+                    (tx.idClient && tx.idClient.toLowerCase().includes(searchQuery)) ||
+                    (tx.admin && tx.admin.toLowerCase().includes(searchQuery))
+                );
+                return inMonth && inMetode && inArea && inSearch;
+            });
+
+            if(pdfData.length === 0) {
+                alert('Tidak ada data untuk dicetak.');
+                return;
+            }
+
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("LAPORAN RIWAYAT TRANSAKSI BULANAN", doc.internal.pageSize.width/2, 15, { align: 'center' });
+            
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            const periodText = filterMonth ? `PERIODE: ${filterMonth}` : "PERIODE: SEMUA WAKTU";
+            const areaText = filterArea === 'Semua' ? "AREA: SEMUA AREA" : `AREA: ${filterArea}`;
+            doc.text(periodText, 14, 25);
+            doc.text(areaText, doc.internal.pageSize.width - 14, 25, { align: 'right' });
+
+            const formatRupiah = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            const formatTanggalPDF = (tgl) => {
+                if(!tgl) return '-';
+                const parts = tgl.split('-');
+                if(parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                return tgl;
+            };
+
+            const body = pdfData.map(tx => [
+                tx.idTransaksi || '-',
+                formatTanggalPDF(tx.tanggalTransaksi),
+                tx.namaClient || '-',
+                tx.idClient || '-',
+                tx.area || '-',
+                formatRupiah(tx.nominal || 0),
+                tx.metode || '-',
+                tx.status || '-',
+                tx.admin || '-'
+            ]);
+
+            doc.autoTable({
+                startY: 30,
+                head: [['ID TRANSAKSI', 'TANGGAL', 'NAMA PELANGGAN', 'ID PELANGGAN', 'AREA', 'NOMINAL', 'METODE', 'STATUS', 'ADMIN']],
+                body: body,
+                theme: 'grid',
+                headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center', fontStyle: 'bold' },
+                styles: { fontSize: 8, cellPadding: 2, textColor: [50, 50, 50] },
+                columnStyles: {
+                    5: { halign: 'right' },
+                    0: { halign: 'center' },
+                    1: { halign: 'center' },
+                    3: { halign: 'center' },
+                    4: { halign: 'center' },
+                    6: { halign: 'center' },
+                    7: { halign: 'center' },
+                    8: { halign: 'center' }
+                }
+            });
+
+            const filename = `Laporan_Transaksi_${filterMonth || 'Semua'}_${filterArea}.pdf`;
+            doc.save(filename);
         }
     </script>
 </body>
