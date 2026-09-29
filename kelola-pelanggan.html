@@ -292,6 +292,15 @@
                             <input type="date" id="input-jatuh-tempo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
                         </div>
                     </div>
+                    
+                    <div id="statusEditContainer" class="hidden mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status Pembayaran</label>
+                        <select id="editInputStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="Paid">Paid</option>
+                            <option value="Unpaid">Unpaid</option>
+                        </select>
+                    </div>
+
                     <div>
                         <label for="input-paket" class="block text-sm font-medium text-gray-700 mb-1">Paket Langganan</label>
                         <select id="input-paket" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" required>
@@ -616,6 +625,8 @@
         btnTambah.addEventListener('click', () => {
             document.getElementById('editIdClient').value = '';
             document.getElementById('modalTitle').textContent = 'Tambah Pelanggan Baru';
+            const statusContainer = document.getElementById('statusEditContainer');
+            if (statusContainer) statusContainer.classList.add('hidden');
             openModal();
         });
         btnBatal.addEventListener('click', closeModal);
@@ -796,6 +807,17 @@
                 document.getElementById('input-paket').value = pelanggan.paket;
                 document.getElementById('input-jatuh-tempo').value = pelanggan.jatuhTempo;
                 
+                const editDropdown = document.getElementById('editInputStatus');
+                const statusContainer = document.getElementById('statusEditContainer');
+                if (statusContainer && editDropdown) {
+                    statusContainer.classList.remove('hidden');
+                    if (pelanggan.status === 'Aktif' || pelanggan.status === 'aktif') {
+                        editDropdown.value = 'Paid';
+                    } else if (pelanggan.status === 'Isolir' || pelanggan.status === 'isolir' || pelanggan.status === 'Nonaktif') {
+                        editDropdown.value = 'Unpaid';
+                    }
+                }
+
                 renderAreaInput(pelanggan.area);
                 
                 if(pelanggan.latitude && pelanggan.longitude) {
@@ -935,6 +957,12 @@
             
             let statusDB = "Aktif";
             if (today > jtDate) statusDB = "Isolir";
+
+            if (editIdClient) {
+                const editStatusVal = document.getElementById('editInputStatus').value;
+                if (editStatusVal === 'Paid') statusDB = 'Aktif';
+                else if (editStatusVal === 'Unpaid') statusDB = 'Isolir';
+            }
 
             const selectPaket = document.getElementById('input-paket');
             const nominalPaket = parseInt(selectPaket.options[selectPaket.selectedIndex]?.dataset?.price) || 0;
