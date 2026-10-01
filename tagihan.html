@@ -142,12 +142,20 @@
 
             <!-- Tab Filter & Search -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <!-- Status Tabs -->
-                <div class="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto overflow-x-auto">
-                    <button onclick="setFilterTagihan('Semua')" id="tab-Semua" class="tab-btn bg-white shadow-sm text-gray-800 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Semua</button>
-                    <button onclick="setFilterTagihan('Belum Bayar')" id="tab-Belum Bayar" class="tab-btn text-gray-500 hover:text-gray-700 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Belum Bayar</button>
-                    <button onclick="setFilterTagihan('Jatuh Tempo')" id="tab-Jatuh Tempo" class="tab-btn text-gray-500 hover:text-gray-700 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Jatuh Tempo</button>
-                    <button onclick="setFilterTagihan('Lunas')" id="tab-Lunas" class="tab-btn text-gray-500 hover:text-gray-700 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Lunas</button>
+                <!-- Status Tabs & Date Filter -->
+                <div class="flex flex-row items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                    <div class="flex bg-gray-100 p-1 rounded-lg shrink-0 w-max">
+                        <button onclick="setFilterTagihan('Semua')" id="tab-Semua" class="tab-btn bg-white shadow-sm text-gray-800 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Semua</button>
+                        <button onclick="setFilterTagihan('Belum Bayar')" id="tab-Belum Bayar" class="tab-btn text-gray-500 hover:text-gray-700 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Belum Bayar</button>
+                        <button onclick="setFilterTagihan('Jatuh Tempo')" id="tab-Jatuh Tempo" class="tab-btn text-gray-500 hover:text-gray-700 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Jatuh Tempo</button>
+                        <button onclick="setFilterTagihan('Lunas')" id="tab-Lunas" class="tab-btn text-gray-500 hover:text-gray-700 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Lunas</button>
+                    </div>
+                    
+                    <div class="inline-flex items-center shrink-0">
+                        <label for="filterTanggalTagihan" class="mr-2 mb-0 font-bold text-gray-500 text-sm whitespace-nowrap">Tanggal:</label>
+                        <input type="date" id="filterTanggalTagihan" class="px-2 py-1.5 border border-gray-300 text-sm cursor-pointer focus:ring-2 focus:ring-purple-500 focus:outline-none" style="width: 140px; border-radius: 6px;">
+                        <button id="resetFilterTanggal" class="ml-2 px-2.5 py-1.5 text-gray-600 border border-gray-300 hover:bg-gray-100 text-sm transition-colors" style="border-radius: 6px;" title="Reset Tanggal">↻</button>
+                    </div>
                 </div>
 
                 <!-- Search -->
@@ -330,6 +338,7 @@
         let dataPelanggan = [];
         let currentFilter = 'Semua';
         let searchQuery = '';
+        let currentFilterDate = '';
 
         function setFilterTagihan(status) {
             currentFilter = status;
@@ -350,6 +359,17 @@
             renderTable();
         });
 
+        document.getElementById('filterTanggalTagihan').addEventListener('change', function(e) {
+            currentFilterDate = e.target.value;
+            renderTable();
+        });
+
+        document.getElementById('resetFilterTanggal').addEventListener('click', function() {
+            document.getElementById('filterTanggalTagihan').value = '';
+            currentFilterDate = '';
+            renderTable();
+        });
+
         let pelangganQuery = db.collection('pelanggan');
         const roleQ = localStorage.getItem('userRole');
         const areaQ = localStorage.getItem('userArea');
@@ -357,7 +377,25 @@
             pelangganQuery = pelangganQuery.where('area', '==', areaQ);
         }
 
-        pelangganQuery.onSnapshot((snapshot) => {
+        pelangganQuery.onSnapshot(async (snapshot) => {
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth() + 1; // 1-12
+            const currentYear = currentDate.getFullYear();
+            const curMonthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+
+            let txQuery = db.collection('transaksi');
+            if (roleQ === 'sales' && areaQ) {
+                txQuery = txQuery.where('area', '==', areaQ);
+            }
+            const txSnapshot = await txQuery.get();
+            const paidClientsThisMonth = new Set();
+            txSnapshot.forEach(txDoc => {
+                const txData = txDoc.data();
+                if (txData.status !== 'Batal' && txData.tanggalTransaksi && txData.tanggalTransaksi.startsWith(curMonthStr)) {
+                    paidClientsThisMonth.add(txData.idClient);
+                }
+            });
+
             dataPelanggan = [];
             const today = new Date();
             today.setHours(0,0,0,0);
@@ -368,17 +406,21 @@
                 
                 data.idDoc = doc.id;
                 
-                let diffDays = 0;
-                if (data.jatuhTempo) {
-                    const jtDate = new Date(data.jatuhTempo);
-                    jtDate.setHours(0,0,0,0);
-                    const diffTime = jtDate - today;
-                    diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (paidClientsThisMonth.has(data.idClient)) {
+                    data.tagihanStatus = 'Lunas';
+                } else {
+                    if (data.jatuhTempo) {
+                        const jtDate = new Date(data.jatuhTempo);
+                        jtDate.setHours(0,0,0,0);
+                        if (jtDate < today) {
+                            data.tagihanStatus = 'Jatuh Tempo';
+                        } else {
+                            data.tagihanStatus = 'Belum Bayar';
+                        }
+                    } else {
+                        data.tagihanStatus = 'Belum Bayar';
+                    }
                 }
-                
-                if (diffDays > 3) data.tagihanStatus = 'Lunas';
-                else if (diffDays > 0 && diffDays <= 3) data.tagihanStatus = 'Belum Bayar';
-                else data.tagihanStatus = 'Jatuh Tempo';
 
                 dataPelanggan.push(data);
             });
@@ -423,6 +465,19 @@
                     (p.nama && p.nama.toLowerCase().includes(searchQuery)) ||
                     (p.idClient && p.idClient.toLowerCase().includes(searchQuery))
                 );
+            }
+            
+            if (currentFilterDate) {
+                displayData = displayData.filter(p => {
+                    if (!p.jatuhTempo) return false;
+                    const d = new Date(p.jatuhTempo);
+                    // Shift it locally just to safely get YYYY-MM-DD
+                    const yy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    const ds = `${yy}-${mm}-${dd}`;
+                    return ds === currentFilterDate;
+                });
             }
 
             // Sort ascending by jatuh tempo (closest first)

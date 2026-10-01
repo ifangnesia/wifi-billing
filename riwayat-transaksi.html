@@ -191,7 +191,7 @@
                     <table class="w-full text-left border-collapse min-w-max">
                         <thead class="bg-gray-50 sticky top-0 z-20">
                             <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider">
-                                <th class="py-4 px-4 font-semibold w-12 text-center">
+                                <th id="th-checkbox" class="py-4 px-4 font-semibold w-12 text-center">
                                     <input type="checkbox" id="checkAll" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer">
                                 </th>
                                 <th class="py-4 px-4 font-semibold">Transaksi & Waktu</th>
@@ -207,7 +207,7 @@
                         </tbody>
                         <tfoot class="sticky bottom-0 bg-white z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] border-t-2 border-gray-100">
                             <tr>
-                                <td colspan="3" class="py-3 px-4 font-bold text-right text-gray-800 text-sm">TOTAL PERIODE INI:</td>
+                                <td id="tfoot-label" colspan="3" class="py-3 px-4 font-bold text-right text-gray-800 text-sm">TOTAL PERIODE INI:</td>
                                 <td class="py-3 px-4 font-bold text-right text-green-600 text-base" id="tfoot-total">Rp 0</td>
                                 <td colspan="3"></td>
                             </tr>
@@ -290,6 +290,13 @@
             filterAreaDropdown.disabled = true;
             filterAreaDropdown.classList.add('bg-gray-100', 'cursor-not-allowed');
             filterArea = areaQ; // hardcode global var to default
+        }
+
+        if (roleQ !== 'master' && roleQ !== 'masteradmin') {
+            const thCheckbox = document.getElementById('th-checkbox');
+            if (thCheckbox) thCheckbox.style.display = 'none';
+            const tfootLabel = document.getElementById('tfoot-label');
+            if (tfootLabel) tfootLabel.setAttribute('colspan', '2');
         }
 
         // Fetching Data (Promise.all for quick initial load)
@@ -427,7 +434,8 @@
             checkAll.checked = false;
 
             if (displayData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="py-12 text-center text-sm text-gray-500 italic">Tidak ada data transaksi yang cocok dengan filter</td></tr>';
+                const colCount = (roleQ === 'master' || roleQ === 'masteradmin') ? 7 : 6;
+                tbody.innerHTML = `<tr><td colspan="${colCount}" class="py-12 text-center text-sm text-gray-500 italic">Tidak ada data transaksi yang cocok dengan filter</td></tr>`;
                 document.getElementById('tfoot-total').textContent = 'Rp 0';
                 toggleDeleteBtn();
                 return;
@@ -462,9 +470,11 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50 transition-colors border-b border-gray-100';
                 tr.innerHTML = `
+                    ${roleQ === 'master' ? `
                     <td class="py-4 px-4 text-center">
                         <input type="checkbox" class="check-item rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer" value="${tx.idDoc}">
                     </td>
+                    ` : ''}
                     <td class="py-4 px-4">
                         <div class="font-bold text-gray-800 text-xs">${tx.idTransaksi}</div>
                         <div class="text-xs text-gray-500 mt-1">${formatDateTime(dTime)}</div>
@@ -508,6 +518,10 @@
         const btnHapusTerpilih = document.getElementById('btnHapusTerpilih');
         
         function toggleDeleteBtn() {
+            if (roleQ !== 'master') {
+                btnHapusTerpilih.style.setProperty('display', 'none', 'important');
+                return;
+            }
             const checkedBoxes = document.querySelectorAll('.check-item:checked');
             if (checkedBoxes.length > 0) btnHapusTerpilih.classList.remove('hidden');
             else btnHapusTerpilih.classList.add('hidden');
@@ -520,6 +534,10 @@
         });
 
         btnHapusTerpilih.addEventListener('click', function() {
+            if (roleQ !== 'master') { 
+                alert('Akses ditolak: Hanya Master Admin yang diizinkan menghapus riwayat transaksi!'); 
+                return; 
+            }
             const checkedBoxes = document.querySelectorAll('.check-item:checked');
             if (checkedBoxes.length === 0) return;
             

@@ -776,6 +776,10 @@
         }
 
         function toggleDeleteBtn() {
+            if (roleQ !== 'master') {
+                btnHapusMasal.style.setProperty('display', 'none', 'important');
+                return;
+            }
             const checkedBoxes = document.querySelectorAll('.checkbox-item:checked');
             if (checkedBoxes.length > 0) {
                 btnHapusMasal.classList.remove('hidden');
@@ -960,8 +964,10 @@
                                 <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.idClient}'); bukaModalDetail('${p.idClient}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-700">Detail</button>
                                 <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.idClient}'); cetakInvoice('${p.idClient}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-700">Cetak Tagihan</button>
                                 <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.idClient}'); bukaModalEdit('${p.idClient}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-700">Edit Data</button>
+                                ${roleQ === 'master' ? `
                                 <div class="border-t border-gray-50 my-1"></div>
                                 <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.idClient}'); hapusPelanggan(${originalIndex})" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Hapus</button>
+                                ` : ''}
                             </div>
                         </div>
                     </td>
@@ -1059,6 +1065,10 @@
         });
 
         function hapusPelanggan(index) {
+            if (roleQ !== 'master') { 
+                alert('Akses ditolak: Hanya Master Admin yang dapat menghapus data.'); 
+                return; 
+            }
             if(confirm("Yakin ingin menghapus data ini?")) {
                 const idDoc = pelangganData[index].idDoc;
                 db.collection('pelanggan').doc(idDoc).delete().catch((err) => {
@@ -1075,6 +1085,10 @@
         });
 
         btnHapusMasal.addEventListener('click', function() {
+            if (roleQ !== 'master') { 
+                alert('Akses ditolak: Hanya Master Admin yang dapat menghapus data.'); 
+                return; 
+            }
             const checkedBoxes = document.querySelectorAll('.checkbox-item:checked');
             if (checkedBoxes.length === 0) return alert("Pilih data dulu.");
             if(confirm("Yakin ingin menghapus semua data terpilih?")) {
