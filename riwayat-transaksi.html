@@ -611,14 +611,7 @@
             window.location.href = 'index.html';
         }
         function generatePDF() {
-            if (typeof window.jspdf === 'undefined') {
-                alert('Library PDF belum dimuat.');
-                return;
-            }
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('landscape');
-            
-            const pdfData = dataTransaksi.filter(tx => {
+            const reportData = dataTransaksi.filter(tx => {
                 const inMonth = !filterMonth || (tx.tanggalTransaksi && tx.tanggalTransaksi.startsWith(filterMonth));
                 const inMetode = filterMetode === 'Semua' || tx.metode === filterMetode;
                 const inArea = filterArea === 'Semua' || tx.area === filterArea;
@@ -631,63 +624,205 @@
                 return inMonth && inMetode && inArea && inSearch;
             });
 
-            if(pdfData.length === 0) {
+            if(reportData.length === 0) {
                 alert('Tidak ada data untuk dicetak.');
                 return;
             }
 
-            doc.setFontSize(14);
-            doc.setFont("helvetica", "bold");
-            doc.text("LAPORAN RIWAYAT TRANSAKSI BULANAN", doc.internal.pageSize.width/2, 15, { align: 'center' });
-            
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            const periodText = filterMonth ? `PERIODE: ${filterMonth}` : "PERIODE: SEMUA WAKTU";
-            const areaText = filterArea === 'Semua' ? "AREA: SEMUA AREA" : `AREA: ${filterArea}`;
-            doc.text(periodText, 14, 25);
-            doc.text(areaText, doc.internal.pageSize.width - 14, 25, { align: 'right' });
-
-            const formatRupiah = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-            const formatTanggalPDF = (tgl) => {
-                if(!tgl) return '-';
-                const parts = tgl.split('-');
-                if(parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-                return tgl;
-            };
-
-            const body = pdfData.map(tx => [
-                tx.idTransaksi || '-',
-                formatTanggalPDF(tx.tanggalTransaksi),
-                tx.namaClient || '-',
-                tx.idClient || '-',
-                tx.area || '-',
-                formatRupiah(tx.nominal || 0),
-                tx.metode || '-',
-                tx.status || '-',
-                tx.admin || '-'
-            ]);
-
-            doc.autoTable({
-                startY: 30,
-                head: [['ID TRANSAKSI', 'TANGGAL', 'NAMA PELANGGAN', 'ID PELANGGAN', 'AREA', 'NOMINAL', 'METODE', 'STATUS', 'ADMIN']],
-                body: body,
-                theme: 'grid',
-                headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center', fontStyle: 'bold' },
-                styles: { fontSize: 8, cellPadding: 2, textColor: [50, 50, 50] },
-                columnStyles: {
-                    5: { halign: 'right' },
-                    0: { halign: 'center' },
-                    1: { halign: 'center' },
-                    3: { halign: 'center' },
-                    4: { halign: 'center' },
-                    6: { halign: 'center' },
-                    7: { halign: 'center' },
-                    8: { halign: 'center' }
+            // TAHAP 1: PERSIAPAN DATA & PERHITUNGAN
+            const formattedData = reportData.map(tx => {
+                const client = dataPelanggan.find(p => p.idClient === tx.idClient) || {};
+                
+                // Ekstrak HANYA ANGKA dari nama paket
+                let mbps = 0;
+                if (client.paket) {
+                    const match = client.paket.match(/\d+/);
+                    if (match) mbps = parseInt(match[0]);
                 }
+                
+                const nominal = parseInt(tx.nominal) || 0;
+                let cash = 0;
+                let tf = 0;
+                const metode = (tx.metode || '').toUpperCase();
+                if (metode === 'CASH') cash = nominal;
+                if (metode === 'TRANSFER' || metode === 'TF') tf = nominal;
+                
+                const ppn = nominal * 0.11;
+                const bph = nominal * 0.0175;
+                const pph = nominal * 0.02;
+                
+                const noHp = client.noWa || '-';
+                const ket = client.detailAlamat || '-';
+                
+                // Format tanggal YYYY-MM-DD ke DD-MM-YYYY jika memungkinkan
+                let tglFmt = tx.tanggalTransaksi || '-';
+                if (tglFmt.includes('-')) {
+                    const p = tglFmt.split('-');
+                    if (p.length === 3) tglFmt = `${p[2]}-${p[1]}-${p[0]}`;
+                }
+
+                return {
+                    tgl: tglFmt,
+                    biaya: nominal,
+                    nama: tx.namaClient || '-',
+                    id: tx.idClient || '-',
+                    noHp: noHp,
+                    mbps: mbps,
+                    cash: cash,
+                    tf: tf,
+                    ppn: ppn,
+                    bph: bph,
+                    pph: pph,
+                    ket: ket
+                };
             });
 
-            const filename = `Laporan_Transaksi_${filterMonth || 'Semua'}_${filterArea}.pdf`;
-            doc.save(filename);
+            // TAHAP 2: LOGIKA CHUNKING (PAGINASI 30 BARIS)
+            const chunkedData = [];
+            for (let i = 0; i < formattedData.length; i += 30) {
+                chunkedData.push(formattedData.slice(i, i + 30));
+            }
+
+            const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+
+            const userArea = localStorage.getItem('userArea') || 'SEMUA AREA';
+            const periodeText = filterMonth ? `PERIODE ${filterMonth}` : 'PERIODE SEMUA WAKTU';
+            
+            // TAHAP 3: RENDERING HTML & CSS PAGE-BREAK
+            let html = `
+            <!DOCTYPE html>
+            <html lang="id">
+            <head>
+                <meta charset="UTF-8">
+                <title>Laporan Transaksi</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; font-size: 10px; }
+                    .page-break { page-break-after: always; margin-bottom: 30px; }
+                    .header-title { text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 20px; text-transform: uppercase; }
+                    .info-section { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 10px; }
+                    table { width: 100%; border-collapse: collapse; text-align: center; }
+                    th, td { border: 1px solid black; padding: 4px; height: 18px; white-space: nowrap; }
+                    th { background-color: #d9d9d9; font-weight: bold; font-size: 9px; }
+                    td { font-size: 9px; }
+                    .footer-branding { font-size: 9px; color: #555; text-align: right; margin-top: 10px; font-style: italic; }
+                    @media print {
+                        .page-break { page-break-after: always; margin-bottom: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+            `;
+
+            let globalCounter = 1;
+
+            chunkedData.forEach((chunk, index) => {
+                html += `
+                <div class="${index < chunkedData.length - 1 ? 'page-break' : ''}">
+                    <div class="header-title">LAPORAN TRANSAKSI BULANAN</div>
+                    
+                    <div class="info-section">
+                        <div>${periodeText.toUpperCase()}</div>
+                        <div>AREA ${userArea.toUpperCase()}</div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th rowspan="2">NO</th>
+                                <th colspan="6">IDENTITAS KLIENT</th>
+                                <th colspan="2">PEMBAYARAN</th>
+                                <th colspan="3">PAJAK</th>
+                                <th rowspan="2">KET</th>
+                            </tr>
+                            <tr>
+                                <th>TGL</th>
+                                <th>BIAYA</th>
+                                <th>NAMA</th>
+                                <th>ID</th>
+                                <th>NO HP</th>
+                                <th>MBPS</th>
+                                <th>CASH</th>
+                                <th>TF</th>
+                                <th>PPN 11%</th>
+                                <th>BPH USO KSO 1,75%</th>
+                                <th>PPH 23 2%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                // TAHAP 4: FORMATTING ANGKA & TABEL BODY
+                let sumBiaya = 0;
+                let sumMbps = 0;
+                let sumCash = 0;
+                let sumTf = 0;
+                let sumPpn = 0;
+                let sumBph = 0;
+                let sumPph = 0;
+
+                chunk.forEach(row => {
+                    sumBiaya += row.biaya;
+                    sumMbps += row.mbps;
+                    sumCash += row.cash;
+                    sumTf += row.tf;
+                    sumPpn += row.ppn;
+                    sumBph += row.bph;
+                    sumPph += row.pph;
+
+                    html += `
+                        <tr>
+                            <td>${globalCounter++}</td>
+                            <td>${row.tgl}</td>
+                            <td style="text-align:right;">${formatRupiah(row.biaya)}</td>
+                            <td style="text-align:left;">${row.nama}</td>
+                            <td>${row.id}</td>
+                            <td>${row.noHp}</td>
+                            <td>${row.mbps}</td>
+                            <td style="text-align:right;">${formatRupiah(row.cash)}</td>
+                            <td style="text-align:right;">${formatRupiah(row.tf)}</td>
+                            <td style="text-align:right;">${formatRupiah(row.ppn)}</td>
+                            <td style="text-align:right;">${formatRupiah(row.bph)}</td>
+                            <td style="text-align:right;">${formatRupiah(row.pph)}</td>
+                            <td style="text-align:left;">${row.ket}</td>
+                        </tr>
+                    `;
+                });
+
+                // TAHAP 3: TABEL FOOTER (TOTAL PER HALAMAN)
+                html += `
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight: bold; background-color: #d9d9d9;">
+                                <td colspan="2"></td>
+                                <td style="text-align:right;">${formatRupiah(sumBiaya)}</td>
+                                <td colspan="3"></td>
+                                <td>${sumMbps}</td>
+                                <td style="text-align:right;">${formatRupiah(sumCash)}</td>
+                                <td style="text-align:right;">${formatRupiah(sumTf)}</td>
+                                <td style="text-align:right;">${formatRupiah(sumPpn)}</td>
+                                <td style="text-align:right;">${formatRupiah(sumBph)}</td>
+                                <td style="text-align:right;">${formatRupiah(sumPph)}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                `;
+            });
+
+            html += `
+            </body>
+            </html>
+            `;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(html);
+            printWindow.document.close();
+            
+            // Wait a moment for styles to apply before opening print dialog
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
         }
     </script>
 </body>
