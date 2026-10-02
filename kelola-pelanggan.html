@@ -940,14 +940,18 @@
                     <td class="py-4 px-4 text-center" data-label="Pilih">
                         <input type="checkbox" class="checkbox-item rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer" data-index="${originalIndex}">
                     </td>
-                    <td class="py-4 px-4" data-label="ID & Nama">
-                        <div class="font-bold text-purple-700 text-sm">${p.idClient}</div>
-                        <div class="font-medium text-gray-800 text-sm mt-0.5">${p.nama}</div>
+                    <td class="py-4 px-4" data-label="ID & NAMA">
+                        <div style="display: flex; flex-direction: column; text-align: right; align-items: flex-end;">
+                            <span style="font-weight: bold; color: #8b5cf6;">${p.idClient}</span>
+                            <span>${p.nama}</span>
+                        </div>
                     </td>
                     <td class="py-4 px-4 text-sm text-gray-600" data-label="Nomor WA">${p.noWa}</td>
-                    <td class="py-4 px-4" data-label="Area & Alamat">
-                        <div class="text-sm text-gray-800">${p.area || '-'}</div>
-                        <div class="text-xs text-gray-500 mt-0.5 font-medium">${p.detailAlamat || '-'}</div>
+                    <td class="py-4 px-4" data-label="AREA & ALAMAT">
+                        <div style="display: flex; flex-direction: column; text-align: right; align-items: flex-end;">
+                            <span style="font-weight: bold;">${p.area || '-'}</span>
+                            <span style="color: #6c757d; font-size: 13px;">${p.detailAlamat || '-'}</span>
+                        </div>
                     </td>
                     <td class="py-4 px-4 text-sm text-gray-700" data-label="Paket">${p.paket}</td>
                     <td class="py-4 px-4 text-sm text-gray-600" data-label="Jatuh Tempo">${formatTanggal(p.jatuhTempo)}</td>
