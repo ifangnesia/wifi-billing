@@ -21,6 +21,7 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased flex h-screen overflow-hidden">
 
@@ -936,24 +937,24 @@
                 const originalIndex = pelangganData.findIndex(orig => orig.idClient === p.idClient);
 
                 tr.innerHTML = `
-                    <td class="py-4 px-4 text-center">
+                    <td class="py-4 px-4 text-center" data-label="Pilih">
                         <input type="checkbox" class="checkbox-item rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer" data-index="${originalIndex}">
                     </td>
-                    <td class="py-4 px-4">
+                    <td class="py-4 px-4" data-label="ID & Nama">
                         <div class="font-bold text-purple-700 text-sm">${p.idClient}</div>
                         <div class="font-medium text-gray-800 text-sm mt-0.5">${p.nama}</div>
                     </td>
-                    <td class="py-4 px-4 text-sm text-gray-600">${p.noWa}</td>
-                    <td class="py-4 px-4">
+                    <td class="py-4 px-4 text-sm text-gray-600" data-label="Nomor WA">${p.noWa}</td>
+                    <td class="py-4 px-4" data-label="Area & Alamat">
                         <div class="text-sm text-gray-800">${p.area || '-'}</div>
                         <div class="text-xs text-gray-500 mt-0.5 font-medium">${p.detailAlamat || '-'}</div>
                     </td>
-                    <td class="py-4 px-4 text-sm text-gray-700">${p.paket}</td>
-                    <td class="py-4 px-4 text-sm text-gray-600">${formatTanggal(p.jatuhTempo)}</td>
-                    <td class="py-4 px-4">
+                    <td class="py-4 px-4 text-sm text-gray-700" data-label="Paket">${p.paket}</td>
+                    <td class="py-4 px-4 text-sm text-gray-600" data-label="Jatuh Tempo">${formatTanggal(p.jatuhTempo)}</td>
+                    <td class="py-4 px-4" data-label="Status">
                         ${badgeHtml}
                     </td>
-                    <td class="py-4 px-4 text-right">
+                    <td class="py-4 px-4 text-right" data-label="Aksi">
                         <div class="relative inline-block text-left">
                             <button type="button" class="text-gray-400 hover:text-gray-600 focus:outline-none p-1.5 rounded-md hover:bg-gray-100 transition-colors" onclick="toggleDropdown(event, 'dropdown-${p.idClient}')">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

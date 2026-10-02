@@ -17,6 +17,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased flex h-screen overflow-hidden">
 
@@ -528,15 +529,15 @@
                 else statusBadge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-semibold">Jatuh Tempo</span>';
 
                 tr.innerHTML = `
-                    <td class="py-4 px-6">${index + 1}</td>
-                    <td class="py-4 px-6 font-bold text-purple-700">${p.idClient}</td>
-                    <td class="py-4 px-6 font-medium text-gray-900">${p.nama}</td>
-                    <td class="py-4 px-6">ODP ${p.odp}</td>
-                    <td class="py-4 px-6">
+                    <td class="py-4 px-6" data-label="No">${index + 1}</td>
+                    <td class="py-4 px-6 font-bold text-purple-700" data-label="ID Client">${p.idClient}</td>
+                    <td class="py-4 px-6 font-medium text-gray-900" data-label="Nama Pelanggan">${p.nama}</td>
+                    <td class="py-4 px-6" data-label="ODP">ODP ${p.odp}</td>
+                    <td class="py-4 px-6" data-label="Status Tagihan">
                         <div class="mb-1">${statusBadge}</div>
                         <div class="text-xs text-gray-500 font-medium">${formatTanggalPendek(p.jatuhTempo)}</div>
                     </td>
-                    <td class="py-4 px-6 text-center">
+                    <td class="py-4 px-6 text-center" data-label="Aksi">
                         <div class="relative inline-block text-left">
                             <button type="button" class="btn-dropdown-toggle text-gray-400 hover:text-gray-600 focus:outline-none p-1.5 rounded-md hover:bg-gray-100 transition-colors" data-id="${p.idClient}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
