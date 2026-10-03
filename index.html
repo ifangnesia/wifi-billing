@@ -65,33 +65,7 @@
         const db = firebase.firestore();
 
         // Seeder Akun Wajib
-        async function seedUsers() {
-            const users = [
-                { id: "adminsales", password: "salesadmin", area: "semua", role: "master" },
-                { id: "masteradmin", password: "adminmaster", area: "semua", role: "master" },
-                { id: "salesbin", password: "binsales", area: "BIN", role: "sales" },
-                { id: "adminbros", password: "brosadmin", area: "BRS", role: "sales" },
-                { id: "adminyanti", password: "yantiadmin", area: "YNT", role: "sales" },
-                { id: "adminbogel", password: "bogeladmin", area: "BGL", role: "sales" }
-            ];
-
-            for (const u of users) {
-                const docRef = db.collection('users').doc(u.id);
-                docRef.get().then(docSnap => {
-                    if (!docSnap.exists) {
-                        docRef.set({
-                            username: u.id,
-                            password: u.password,
-                            area: u.area,
-                            role: u.role
-                        }).then(() => console.log("Seeded user:", u.id));
-                    }
-                });
-            }
-        }
         
-        // Panggil seeder saat halaman diload
-        seedUsers();
 
         const loginForm = document.getElementById('login-form');
         const errorMessage = document.getElementById('error-message');
@@ -130,9 +104,13 @@
                     errorMessage.classList.remove('hidden');
                 }
             } catch (error) {
-                console.error("Error login:", error);
-                errorMessage.textContent = 'Terjadi kesalahan sistem!';
-                errorMessage.classList.remove('hidden');
+                console.error("FIREBASE ERROR:", error);
+                alert("Sistem Error: " + error.message);
+                const errorElement = document.getElementById('error-message');
+                if (errorElement) {
+                    errorElement.innerText = error.message;
+                    errorElement.style.display = 'block';
+                }
             }
         });
     </script>
