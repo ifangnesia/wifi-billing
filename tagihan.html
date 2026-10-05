@@ -148,7 +148,7 @@
                     <div class="flex bg-gray-100 p-1 rounded-lg shrink-0 w-max">
                         <button onclick="setFilterTagihan('Semua')" id="tab-Semua" class="tab-btn bg-white shadow-sm text-gray-800 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Semua</button>
                         <button onclick="setFilterTagihan('Belum Bayar')" id="tab-Belum Bayar" class="tab-btn text-gray-500 hover:text-gray-700 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Belum Bayar</button>
-                        <button onclick="setFilterTagihan('Jatuh Tempo')" id="tab-Jatuh Tempo" class="tab-btn text-gray-500 hover:text-gray-700 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Jatuh Tempo</button>
+                        
                         <button onclick="setFilterTagihan('Lunas')" id="tab-Lunas" class="tab-btn text-gray-500 hover:text-gray-700 px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap">Lunas</button>
                     </div>
                     
@@ -458,7 +458,12 @@
             let displayData = dataPelanggan;
             
             if (currentFilter !== 'Semua') {
-                displayData = displayData.filter(p => p.tagihanStatus === currentFilter);
+                displayData = displayData.filter(p => {
+                    if (currentFilter === 'Belum Bayar') {
+                        return p.tagihanStatus === 'Belum Bayar' || p.tagihanStatus === 'Jatuh Tempo';
+                    }
+                    return p.tagihanStatus === currentFilter;
+                });
             }
             
             if (searchQuery) {
@@ -500,7 +505,13 @@
                 tr.className = 'hover:bg-gray-50 transition-colors';
                 tr.setAttribute('data-nomor', p.noWa || '');
                 tr.setAttribute('data-nama', p.nama || '');
-                tr.setAttribute('data-tempo', formatTanggalPendek(p.jatuhTempo) || '');
+                let tanggalDisplay = new Date(p.jatuhTempo);
+                if (p.tagihanStatus === 'Lunas') {
+                    tanggalDisplay.setMonth(tanggalDisplay.getMonth() - 1);
+                }
+                const tanggalDisplayStr = formatTanggalPendek(tanggalDisplay);
+                
+                tr.setAttribute('data-tempo', tanggalDisplayStr || '');
                 
                 // For invoice
                 const dDate = new Date();
@@ -517,7 +528,7 @@
                 tr.setAttribute('data-inv-client', p.idClient || '');
                 tr.setAttribute('data-inv-no', invNumber);
                 tr.setAttribute('data-inv-tglcetak', tglCetak);
-                tr.setAttribute('data-inv-tgltempo', formatTanggalPendek(p.jatuhTempo) || '');
+                tr.setAttribute('data-inv-tgltempo', tanggalDisplayStr || '');
                 tr.setAttribute('data-inv-kontrak', noKontrak);
                 tr.setAttribute('data-inv-paket', namaPaket);
                 tr.setAttribute('data-inv-periode', periodeTagihan);
@@ -535,7 +546,7 @@
                     <td class="py-4 px-6" data-label="ODP">ODP ${p.odp}</td>
                     <td class="py-4 px-6" data-label="Status Tagihan">
                         <div class="mb-1">${statusBadge}</div>
-                        <div class="text-xs text-gray-500 font-medium">${formatTanggalPendek(p.jatuhTempo)}</div>
+                        <div class="text-xs text-gray-500 font-medium">${tanggalDisplayStr}</div>
                     </td>
                     <td class="py-4 px-6 text-center" data-label="Aksi">
                         <div class="relative inline-block text-left">

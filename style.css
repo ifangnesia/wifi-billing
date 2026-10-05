@@ -14,9 +14,10 @@
   
   /* 2. Pastikan container utama tabel juga tidak memotong dropdown */
   /* Netralkan efek dari table-responsive yang sering bikin scroll sendiri */
-  .table-responsive, .overflow-x-auto {
+  /* Berikan Bumper (ruang kosong) di bawah container agar dropdown punya ruang terbuka */
+  .table-responsive, div.overflow-x-auto:has(table) {
     overflow: visible !important;
-    padding: 0 !important;
+    padding: 0 0 120px 0 !important; /* Ruang ekstra untuk dropdown menu di bawah */
     margin: 0 !important;
     width: 100% !important;
   }
@@ -51,12 +52,25 @@
     z-index: 1; 
   }
   
+  /* 2. Pastikan card terakhir tidak memotong konten yang keluar darinya */
+  .table-responsive table tbody tr:last-child,
+  .overflow-x-auto table tbody tr:last-child {
+    margin-bottom: 0 !important;
+  }
+
   /* 3. Beri stacking context yang lebih tinggi saat tombol aksi diklik/hover */
   .table-responsive table tbody tr:hover, 
   .table-responsive table tbody tr:focus-within,
   .overflow-x-auto table tbody tr:hover,
   .overflow-x-auto table tbody tr:focus-within {
     z-index: 999 !important; 
+  }
+  
+  /* 3. Paksa dropdown menu untuk selalu tampil penuh di atas segalanya */
+  .table-responsive .dropdown-menu,
+  .overflow-x-auto .dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
   }
   
   /* Geser data kanan agar lebih ke kiri (dorong dengan padding-right) */
