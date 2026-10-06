@@ -540,10 +540,10 @@
                 else statusBadge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-semibold">Jatuh Tempo</span>';
 
                 tr.innerHTML = `
-                    <td class="py-4 px-6" data-label="No">${index + 1}</td>
-                    <td class="py-4 px-6 font-bold text-purple-700" data-label="ID Client">${p.idClient}</td>
-                    <td class="py-4 px-6 font-medium text-gray-900" data-label="Nama Pelanggan">${p.nama}</td>
-                    <td class="py-4 px-6" data-label="ODP">ODP ${p.odp}</td>
+                    <td class="py-4 px-6" data-label="No"><span>${index + 1}</span></td>
+                    <td class="py-4 px-6 font-bold text-purple-700" data-label="ID Client"><span>${p.idClient}</span></td>
+                    <td class="py-4 px-6 font-medium text-gray-900" data-label="Nama Pelanggan"><span>${p.nama}</span></td>
+                    <td class="py-4 px-6" data-label="ODP"><span>ODP ${p.odp}</span></td>
                     <td class="py-4 px-6" data-label="Status Tagihan">
                         <div class="mb-1">${statusBadge}</div>
                         <div class="text-xs text-gray-500 font-medium">${tanggalDisplayStr}</div>
