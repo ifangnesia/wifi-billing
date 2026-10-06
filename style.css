@@ -69,16 +69,18 @@
     position: absolute !important;
   }
   
-  /* 2. Baris Data: Flexbox Proporsional */
+  /* 2. Baris Data: Block & Absolute Position (Anti-Cutoff for Raw Text) */
   .table-responsive table tbody td, .overflow-x-auto table tbody td {
-    display: flex !important;
-    justify-content: space-between !important; /* Label di kiri, Data di kanan */
-    align-items: center !important;
-    gap: 10px !important;
-    padding: 12px 16px !important; /* Ruang napas yang lega */
-    border-bottom: 1px dashed #e2e8f0 !important; /* Garis pemisah yang elegan */
+    display: block !important;
+    position: relative !important;
+    text-align: right !important;
+    padding: 12px 16px 12px 40% !important; /* 40% kiri untuk ruang label */
+    border-bottom: 1px dashed #e2e8f0 !important;
     box-sizing: border-box !important;
     width: 100% !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    min-height: 45px;
   }
 
   /* Hapus border dashed di baris terakhir agar rapi */
@@ -86,11 +88,13 @@
     border-bottom: none !important;
   }
 
-  /* 3. Kolom Label Kiri (Maksimal 35% agar tidak serakah tempat) */
+  /* 3. Kolom Label Kiri (Absolute) */
   .table-responsive table tbody td::before, .overflow-x-auto table tbody td::before {
     content: attr(data-label);
-    flex-basis: 35% !important;
-    flex-shrink: 0 !important;
+    position: absolute !important;
+    left: 16px !important;
+    top: 12px !important; /* Top aligned to match padding-top */
+    width: 35% !important;
     text-align: left !important;
     font-size: 12px !important;
     font-weight: 600 !important;
@@ -98,20 +102,14 @@
     text-transform: uppercase !important;
   }
 
-  /* 4. Kolom Data Kanan (Mendapat 65% sisa ruang) */
+  /* 4. Kolom Data Kanan (Reset display if needed) */
   .table-responsive table tbody td > div,
-  .table-responsive table tbody td > span,
-  .table-responsive table tbody td > a,
-  .table-responsive table tbody td > text,
-  .overflow-x-auto table tbody td > div,
-  .overflow-x-auto table tbody td > span,
-  .overflow-x-auto table tbody td > a,
-  .overflow-x-auto table tbody td > text {
-    flex-basis: 65% !important;
+  .overflow-x-auto table tbody td > div {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: flex-end !important;
     text-align: right !important;
-    word-wrap: break-word !important;
-    font-size: 14px !important;
-    color: #1e293b !important;
   }
 
   /* 5. Fix Badge Status agar tidak melipat aneh */
@@ -130,9 +128,9 @@
   .table-responsive table tbody td:last-child,
   .overflow-x-auto table tbody td[data-label="AKSI"], 
   .overflow-x-auto table tbody td:last-child {
+    display: flex !important;
     justify-content: center !important; /* Posisikan tombol di tengah bawah */
-    padding-top: 16px !important;
-    padding-bottom: 16px !important;
+    padding: 16px !important;
     background: #f8fafc !important; /* Beda warna sedikit untuk area aksi */
     border-radius: 0 0 12px 12px !important;
   }
