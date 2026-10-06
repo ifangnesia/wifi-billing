@@ -155,7 +155,8 @@
                         </select>
                     </div>
                     <div class="flex items-center gap-3 w-full md:w-auto">
-                        <div class="relative w-full md:w-64">
+                        <button id="btn-hapus-masal" class="hidden bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold shadow-md transition-all flex items-center gap-1">Hapus Terpilih</button>
+                          <div class="relative w-full md:w-64">
                             <input type="text" id="input-search" placeholder="Cari ID / Nama / Admin..." class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50 focus:bg-white transition-colors">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -171,7 +172,8 @@
                     <table class="w-full text-left border-collapse min-w-max">
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider">
-                                <th class="py-4 px-4 font-semibold w-12 text-center">No</th>
+                                <th class="py-4 px-4 font-semibold w-12 text-center"><input type="checkbox" id="checkbox-all" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"></th>
+                                  <th class="py-4 px-4 font-semibold w-12 text-center">No</th>
                                 <th class="py-4 px-4 font-semibold">Transaksi & Waktu</th>
                                 <th class="py-4 px-4 font-semibold">Pelanggan</th>
                                 <th class="py-4 px-4 font-semibold text-right">Nominal (Rp)</th>
@@ -640,6 +642,9 @@
 
         // Render Tabel
         function renderTabelPembayaran() {
+            const cbAll = document.getElementById('checkbox-all');
+            if (cbAll) cbAll.checked = false;
+            if (typeof toggleHapusMasal === 'function') toggleHapusMasal();
             const tbody = document.getElementById('tabel-body');
             tbody.innerHTML = '';
             
@@ -687,7 +692,8 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50 transition-colors border-b border-gray-100';
                 tr.innerHTML = `
-                    <td class="py-4 px-4 text-center">${index + 1}</td>
+                    <td class="py-4 px-4 text-center"><input type="checkbox" class="checkbox-item rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer" value="${tx.idDoc}"></td>
+                      <td class="py-4 px-4 text-center">${index + 1}</td>
                     <td class="py-4 px-4">
                         <div class="font-bold text-gray-800 text-xs">${tx.idTransaksi}</div>
                         <div class="text-xs text-gray-500 mt-1">${formatDateTime(dTime)}</div>
@@ -775,6 +781,72 @@
 
         btnTutupGambar.addEventListener('click', tutupGambar);
         modalGambar.addEventListener('click', function(e) { if(e.target === modalGambar) tutupGambar(); });
+
+        
+        const btnHapusMasal = document.getElementById('btn-hapus-masal');
+        
+        function toggleHapusMasal() {
+            if (roleQ !== 'master' && roleQ !== 'masteradmin') {
+                if (btnHapusMasal) btnHapusMasal.classList.add('hidden');
+                return;
+            }
+            const checkedBoxes = document.querySelectorAll('.checkbox-item:checked');
+            if (checkedBoxes.length > 0) btnHapusMasal.classList.remove('hidden');
+            else btnHapusMasal.classList.add('hidden');
+        }
+        
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'checkbox-all') {
+                const isChecked = e.target.checked;
+                document.querySelectorAll('.checkbox-item').forEach(cb => cb.checked = isChecked);
+                toggleHapusMasal();
+            } else if (e.target.classList.contains('checkbox-item')) {
+                const allBoxes = document.querySelectorAll('.checkbox-item');
+                const checkedBoxes = document.querySelectorAll('.checkbox-item:checked');
+                const cbAll = document.getElementById('checkbox-all');
+                if (cbAll) cbAll.checked = (allBoxes.length === checkedBoxes.length && allBoxes.length > 0);
+                toggleHapusMasal();
+            }
+        });
+        
+        if (btnHapusMasal) {
+            btnHapusMasal.addEventListener('click', async function() {
+                if (roleQ !== 'master' && roleQ !== 'masteradmin') { 
+                    alert('Akses ditolak: Hanya Master Admin yang dapat menghapus data.'); 
+                    return; 
+                }
+                
+                const checkedBoxes = document.querySelectorAll('.checkbox-item:checked');
+                if (checkedBoxes.length === 0) return;
+                
+                if (!confirm(`Yakin ingin menghapus ${checkedBoxes.length} riwayat transaksi terpilih? Pendapatan bulan ini akan ikut berkurang.`)) return;
+                
+                btnHapusMasal.textContent = "Menghapus...";
+                btnHapusMasal.disabled = true;
+                
+                try {
+                    const batch = db.batch();
+                    checkedBoxes.forEach(cb => {
+                        const idDoc = cb.value;
+                        const txRef = db.collection('transaksi').doc(idDoc);
+                        batch.delete(txRef);
+                    });
+                    
+                    await batch.commit();
+                    alert(`Berhasil menghapus ${checkedBoxes.length} transaksi!`);
+                    
+                    document.getElementById('checkbox-all').checked = false;
+                    toggleHapusMasal();
+                } catch (err) {
+                    console.error("Error bulk delete:", err);
+                    alert("Gagal menghapus riwayat transaksi.");
+                } finally {
+                    btnHapusMasal.textContent = "Hapus Terpilih";
+                    btnHapusMasal.disabled = false;
+                }
+            });
+        }
+
 
         function logout(e) {
             e.preventDefault();

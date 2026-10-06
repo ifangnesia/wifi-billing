@@ -157,9 +157,24 @@
                         <input type="date" id="filterTanggalTagihan" class="px-2 py-1.5 border border-gray-300 text-sm cursor-pointer focus:ring-2 focus:ring-purple-500 focus:outline-none" style="width: 140px; border-radius: 6px;">
                         <button id="resetFilterTanggal" class="ml-2 px-2.5 py-1.5 text-gray-600 border border-gray-300 hover:bg-gray-100 text-sm transition-colors" style="border-radius: 6px;" title="Reset Tanggal">↻</button>
                     </div>
+
+                      
+
                 </div>
 
-                <!-- Search -->
+                
+                  <div class="inline-flex items-center shrink-0 ml-auto mr-4 relative hidden" id="bulk-action-container">
+                      <button id="btn-tindakan" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap flex items-center gap-1 shadow-sm">
+                          <span>Tindakan</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                      <div id="dropdown-tindakan" class="hidden absolute top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg py-1 w-56 z-50 right-0">
+                          <a href="#" id="bulk-lunas-cash" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Input sebagai Lunas (Cash)</a>
+                          <a href="#" id="bulk-lunas-transfer" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Input sebagai Lunas (Transfer)</a>
+                      </div>
+                  </div>
+
+                  <!-- Search -->
                 <div class="relative w-full md:w-72">
                     <input type="text" id="input-search" placeholder="Cari nama / ID pelanggan..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white transition-colors">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -176,7 +191,8 @@
                     <table class="w-full text-left border-collapse min-w-max">
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-200 text-sm text-gray-600">
-                                <th class="py-4 px-6 font-semibold w-16">No</th>
+                                <th class="py-4 px-4 font-semibold w-12 text-center"><input type="checkbox" id="checkbox-all" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"></th>
+                                  <th class="py-4 px-6 font-semibold w-16">No</th>
                                 <th class="py-4 px-6 font-semibold">ID Client</th>
                                 <th class="py-4 px-6 font-semibold">Nama Pelanggan</th>
                                 <th class="py-4 px-6 font-semibold">ODP</th>
@@ -378,6 +394,17 @@
             pelangganQuery = pelangganQuery.where('area', '==', areaQ);
         }
 
+        
+        const checkboxAllGlobal = document.getElementById('checkbox-all');
+        if (checkboxAllGlobal) {
+            checkboxAllGlobal.addEventListener('change', function(e) {
+                const isChecked = e.target.checked;
+                document.querySelectorAll('.checkbox-item').forEach(cb => {
+                    cb.checked = isChecked;
+                });
+            });
+        }
+
         pelangganQuery.onSnapshot(async (snapshot) => {
             const currentDate = new Date();
             const currentMonth = currentDate.getMonth() + 1; // 1-12
@@ -453,6 +480,9 @@
         }
 
         function renderTable() {
+            const cbAll = document.getElementById('checkbox-all');
+            if (cbAll) cbAll.checked = false;
+            if (typeof toggleBulkAction === 'function') toggleBulkAction();
             const tbody = document.querySelector('tbody');
             
             let displayData = dataPelanggan;
@@ -540,7 +570,8 @@
                 else statusBadge = '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-semibold">Jatuh Tempo</span>';
 
                 tr.innerHTML = `
-                    <td class="py-4 px-6" data-label="No"><span>${index + 1}</span></td>
+                    <td class="py-4 px-4 text-center" data-label="Pilih"><input type="checkbox" class="checkbox-item rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer" value="${p.idClient}"></td>
+                      <td class="py-4 px-6" data-label="No"><span>${index + 1}</span></td>
                     <td class="py-4 px-6 font-bold text-purple-700" data-label="ID Client"><span>${p.idClient}</span></td>
                     <td class="py-4 px-6 font-medium text-gray-900" data-label="Nama Pelanggan"><span>${p.nama}</span></td>
                     <td class="py-4 px-6" data-label="ODP"><span>ODP ${p.odp}</span></td>
@@ -566,7 +597,178 @@
                 `;
                 tbody.appendChild(tr);
             });
+
+
+            const checkboxes = document.querySelectorAll('.checkbox-item');
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', function() {
+                    const allChecked = document.querySelectorAll('.checkbox-item:checked').length === checkboxes.length && checkboxes.length > 0;
+                    const checkboxAll = document.getElementById('checkbox-all');
+                    if(checkboxAll) checkboxAll.checked = allChecked;
+                });
+            });
+
         }
+
+        
+        function toggleBulkAction() {
+            const checkedBoxes = document.querySelectorAll('.checkbox-item:checked');
+            const container = document.getElementById('bulk-action-container');
+            if (container) {
+                if (checkedBoxes.length > 0) container.classList.remove('hidden');
+                else container.classList.add('hidden');
+            }
+        }
+        
+        // Ensure checkboxes trigger bulk toggle
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('checkbox-item') || e.target.id === 'checkbox-all') {
+                toggleBulkAction();
+            }
+        });
+        
+        // Tindakan Dropdown Logic
+        const btnTindakan = document.getElementById('btn-tindakan');
+        const dropdownTindakan = document.getElementById('dropdown-tindakan');
+        
+        if (btnTindakan && dropdownTindakan) {
+            btnTindakan.addEventListener('click', function(e) {
+                e.preventDefault();
+                dropdownTindakan.classList.toggle('hidden');
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#bulk-action-container')) {
+                    dropdownTindakan.classList.add('hidden');
+                }
+            });
+            
+            async function prosesBulkLunas(metode) {
+                const checkedBoxes = document.querySelectorAll('.checkbox-item:checked');
+                if (checkedBoxes.length === 0) return;
+                
+                if (!confirm(`Yakin menandai ${checkedBoxes.length} pelanggan terpilih sebagai Lunas (${metode})?`)) return;
+                
+                dropdownTindakan.classList.add('hidden');
+                
+                const btnTindakanSpan = btnTindakan.querySelector('span');
+                const originalText = btnTindakanSpan.textContent;
+                btnTindakanSpan.textContent = "Memproses...";
+                btnTindakan.disabled = true;
+                
+                const batchTx = db.batch();
+const batchPel = db.batch();
+                const adminName = localStorage.getItem('username') || 'Unknown';
+                const timestamp = Date.now();
+                const tanggalTransaksi = new Date(timestamp).toISOString().split('T')[0];
+                
+                let successCount = 0;
+                const waMessages = [];
+                
+                checkedBoxes.forEach((cb, idx) => {
+                    const idClient = cb.value;
+                    const clientData = dataPelanggan.find(p => p.idClient === idClient);
+                    if (!clientData) return;
+                    
+                    const idTransaksi = 'TRX-' + (timestamp + idx);
+                    
+                    const jtDate = new Date(clientData.jatuhTempo);
+                    jtDate.setMonth(jtDate.getMonth() + 1);
+                    const newJt = jtDate.toISOString().split('T')[0];
+                    
+                    const jtDateOnly = new Date(newJt);
+                    jtDateOnly.setHours(0,0,0,0);
+                    const todayDateOnly = new Date();
+                    todayDateOnly.setHours(0,0,0,0);
+                    const newStatus = (todayDateOnly > jtDateOnly) ? "Isolir" : "Aktif";
+                    
+                    // Update Pelanggan
+                    const pelRef = db.collection('pelanggan').doc(clientData.idDoc);
+                    batchPel.update(pelRef, {
+                        jatuhTempo: newJt,
+                        status: newStatus,
+                        isIsolir: false
+                    });
+                    
+                    // Add Transaksi
+                    const trxRef = db.collection('transaksi').doc();
+                    batchTx.set(trxRef, {
+                        idTransaksi: idTransaksi,
+                        tanggalTransaksi: tanggalTransaksi,
+                        timestamp: timestamp + idx,
+                        idClient: clientData.idClient,
+                        namaClient: clientData.nama,
+                        odp: clientData.odp,
+                        nominal: parseNominal(clientData.nominalPaket),
+                        metode: metode,
+                        bukti: '',
+                        status: 'Lunas',
+                        area: clientData.area || '',
+                        admin: adminName
+                    });
+                    
+                    
+                    successCount++;
+                    
+                    if (clientData.noWa) {
+                        let formattedNumber = clientData.noWa.trim();
+                        if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.slice(1);
+                        const formatRp = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                        const pesanLunas = `Halo Kak ${clientData.nama},\n\nTerima kasih! Pembayaran untuk layanan internet Anda telah berhasil kami terima dan verifikasi oleh sistem.\n\nRincian transaksi Anda:\n• ID Client: ${idClient}\n• Paket Langganan: ${clientData.paket || '-'}\n• Nominal Dibayar: ${formatRp(parseNominal(clientData.nominalPaket))}\n• Status: LUNAS (Aktif hingga periode berikutnya)\n\nNota/Invoice resmi transaksi ini dapat Anda unduh atau cetak langsung melalui sistem portal pelanggan kami.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 🛠️ https://wifi-billing-two.vercel.app/form-ticket.html\n\nSelamat menikmati kembali koneksi internet cepat dari kami!\n\nIfangsnesia Customer Care`;
+                        waMessages.push({ target: formattedNumber, message: pesanLunas, countryCode: '62' });
+                    }
+
+                });
+                
+                if (successCount === 0) {
+                    btnTindakanSpan.textContent = originalText;
+                    btnTindakan.disabled = false;
+                    return;
+                }
+                
+                
+                try {
+                    await batchTx.commit();
+                    await batchPel.commit();
+                    
+                    if (waMessages.length > 0) {
+                        btnTindakanSpan.textContent = 'Kirim WA...';
+                        for (const msg of waMessages) {
+                            try {
+                                await fetch('https://api.fonnte.com/send', {
+                                    method: 'POST',
+                                    headers: { 'Authorization': FONNTE_TOKEN, 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(msg)
+                                });
+                            } catch (err) {
+                                console.error('Failed to send WA to', msg.target, err);
+                            }
+                        }
+                    }
+
+                    alert(`Berhasil memproses ${successCount} data tagihan (Lunas ${metode})!`);
+                    document.getElementById('checkbox-all').checked = false;
+                    toggleBulkAction();
+                } catch (err) {
+                    console.error("Bulk process error:", err);
+                    alert("Terjadi kesalahan saat memproses data bulk.");
+                } finally {
+                    btnTindakanSpan.textContent = originalText;
+                    btnTindakan.disabled = false;
+                }
+            }
+            
+            document.getElementById('bulk-lunas-cash').addEventListener('click', function(e) {
+                e.preventDefault();
+                prosesBulkLunas('Cash');
+            });
+            
+            document.getElementById('bulk-lunas-transfer').addEventListener('click', function(e) {
+                e.preventDefault();
+                prosesBulkLunas('Transfer');
+            });
+        }
+
 
         // Event Delegation untuk Dropdown & Aksi
         document.querySelector('tbody').addEventListener('click', async function(e) {

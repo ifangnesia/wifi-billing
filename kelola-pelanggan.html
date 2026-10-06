@@ -22,6 +22,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased flex h-screen overflow-hidden">
 
@@ -104,7 +106,11 @@
             <h2 class="text-xl font-bold text-gray-800">Manajemen Pelanggan</h2>
             
             <div class="flex items-center gap-2">
-                <button onclick="exportCSV()" class="hidden md:flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                <button id="btnPrintList" onclick="printDataKlient()" class="hidden md:flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors" style="margin-right: 8px;">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                      Print
+                  </button>
+                  <button onclick="exportCSV()" class="hidden md:flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Ekspor
                 </button>
@@ -1105,6 +1111,108 @@
                 batch.commit().catch((err) => { console.error(err); alert("Gagal bulk delete"); });
             }
         });
+
+        
+        function printDataKlient() {
+            let displayData = pelangganData;
+            if (currentStatusFilter !== 'Semua') {
+                displayData = displayData.filter(p => p._calcStatus === currentStatusFilter);
+            }
+            if (currentSearchQuery) {
+                displayData = displayData.filter(p => 
+                    (p.nama && p.nama.toLowerCase().includes(currentSearchQuery)) ||
+                    (p.idClient && p.idClient.toLowerCase().includes(currentSearchQuery)) ||
+                    (p.noWa && p.noWa.includes(currentSearchQuery)) ||
+                    (p.odp && String(p.odp).includes(currentSearchQuery))
+                );
+            }
+            
+            const totalKlient = displayData.length;
+            if (totalKlient === 0) return alert('Tidak ada data untuk dicetak.');
+            
+            // Sort Logic
+            const today = new Date();
+            const currYear = today.getFullYear();
+            const currMonth = today.getMonth();
+            
+            let dataToPrint = [...displayData].sort((a, b) => {
+                let aJt = a.jatuhTempo ? new Date(a.jatuhTempo) : new Date(0);
+                let bJt = b.jatuhTempo ? new Date(b.jatuhTempo) : new Date(0);
+                
+                let aIsPaid = (aJt.getFullYear() > currYear) || (aJt.getFullYear() === currYear && aJt.getMonth() > currMonth);
+                let bIsPaid = (bJt.getFullYear() > currYear) || (bJt.getFullYear() === currYear && bJt.getMonth() > currMonth);
+                
+                if (aIsPaid && !bIsPaid) return 1;
+                if (!aIsPaid && bIsPaid) return -1;
+                
+                return aJt - bJt;
+            });
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+            
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            const title = "LIST DATA KLIENT";
+            const titleWidth = doc.getStringUnitWidth(title) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+            const xOffset = (doc.internal.pageSize.width - titleWidth) / 2;
+            doc.text(title, xOffset, 15);
+            
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            doc.text(`TOTAL KLIENT : ${totalKlient}`, 14, 25);
+            
+            const tableData = dataToPrint.map(data => {
+                let jtStr = '';
+                if (data.jatuhTempo) {
+                    const d = new Date(data.jatuhTempo);
+                    jtStr = d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth()+1).toString().padStart(2, '0') + '/' + d.getFullYear();
+                }
+                
+                return [
+                    "",
+                    data.idClient || "",
+                    data.nama || "",
+                    data.noWa || "",
+                    data.area || "",
+                    data.odp ? "ODP " + data.odp : "",
+                    data.paket || "",
+                    jtStr,
+                    data.detailAlamat || ""
+                ];
+            });
+            
+            doc.autoTable({
+                startY: 30,
+                head: [['BOX', 'ID CLIENT', 'NAMA PELANGGAN', 'NO WA', 'AREA', 'NO ODP', 'PAKET LANGGANAN', 'JATUH TEMPO', 'DETAIL ALAMAT']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [211, 211, 211],
+                    textColor: [0, 0, 0],
+                    lineWidth: 0.1,
+                    lineColor: [0, 0, 0]
+                },
+                styles: {
+                    lineWidth: 0.1,
+                    lineColor: [0, 0, 0],
+                    valign: 'middle'
+                },
+                columnStyles: {
+                    0: { cellWidth: 15 },
+                    1: { cellWidth: 28 },
+                    2: { cellWidth: 40 },
+                    3: { cellWidth: 32 },
+                    4: { cellWidth: 15 },
+                    5: { cellWidth: 20 },
+                    6: { cellWidth: 40 },
+                    7: { cellWidth: 30 },
+                    8: { cellWidth: 'auto' }
+                }
+            });
+            
+            window.open(doc.output('bloburl'), '_blank');
+        }
 
         function exportCSV() {
             if(pelangganData.length === 0) return alert('Tidak ada data untuk diekspor.');
