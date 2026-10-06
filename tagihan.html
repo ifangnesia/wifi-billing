@@ -8,7 +8,117 @@
             // Jika belum login atau status palsu, redirect paksa ke halaman login utama
             window.location.replace('index.html');
         }
-    </script>
+    
+window.bukaModalEdit = async function(idClient) {
+    console.log("Modal edit dipanggil untuk ID:", idClient);
+    // Hide all dropdowns
+    document.querySelectorAll('.aksi-dropdown').forEach(d => d.classList.add('hidden'));
+
+    const client = dataPelanggan.find(p => p.idClient === idClient);
+    if (!client) return;
+
+    document.getElementById('input-mode').value = 'edit';
+    const titleEl = document.getElementById('modal-title');
+    if(titleEl) titleEl.innerText = 'Edit Pembayaran';
+    
+    document.getElementById('input-iddoc').value = client.idDoc;
+    document.getElementById('input-idclient').value = client.idClient;
+    document.getElementById('input-odp').value = client.odp || '';
+    document.getElementById('input-nama').value = client.nama;
+    document.getElementById('input-area').value = client.area || '';
+    
+    // Bind Simpan button to edit submit
+    const btnSimpan = document.getElementById('btn-simpan');
+    // Remove old listeners if any by cloning
+    const newBtn = btnSimpan.cloneNode(true);
+    btnSimpan.parentNode.replaceChild(newBtn, btnSimpan);
+    newBtn.onclick = window.submitEditPembayaran;
+
+    db.collection('transaksi').where('idClient', '==', idClient).orderBy('timestamp', 'desc').limit(1).get().then(snap => {
+        if (!snap.empty) {
+            const trx = snap.docs[0].data();
+            document.getElementById('input-idtransaksi').value = snap.docs[0].id;
+            document.getElementById('input-nominal').value = trx.nominal || parseNominal(client.nominalPaket);
+            if (trx.metode) {
+                document.getElementById('input-metode').value = trx.metode;
+                if (trx.metode === 'Transfer') document.getElementById('container-bukti').classList.remove('hidden');
+                else document.getElementById('container-bukti').classList.add('hidden');
+            }
+        } else {
+            document.getElementById('input-nominal').value = parseNominal(client.nominalPaket);
+        }
+        document.getElementById('modal-pembayaran').classList.remove('hidden');
+    });
+};
+
+window.submitEditPembayaran = async function(e) {
+    e.preventDefault();
+    const idTransaksiFire = document.getElementById('input-idtransaksi').value;
+    const nominal = document.getElementById('input-nominal').value;
+    const metode = document.getElementById('input-metode').value;
+    const btnSimpan = document.getElementById('btn-simpan');
+    
+    if (!idTransaksiFire || !nominal) return alert('Data tidak valid untuk diedit!');
+    
+    btnSimpan.disabled = true;
+    btnSimpan.textContent = "Menyimpan Edit...";
+    
+    try {
+        let updateData = {
+            nominal: parseInt(nominal),
+            metode: metode
+        };
+        
+        const inputBukti = document.getElementById('input-bukti');
+        if (metode === 'Transfer' && inputBukti.files.length > 0) {
+            const file = inputBukti.files[0];
+            const reader = new FileReader();
+            reader.onload = async function(ev) {
+                updateData.bukti = ev.target.result;
+                await db.collection('transaksi').doc(idTransaksiFire).update(updateData);
+                finishEdit();
+            };
+            reader.readAsDataURL(file);
+        } else {
+            if (metode === 'Cash') updateData.bukti = ''; // clear bukti if cash
+            await db.collection('transaksi').doc(idTransaksiFire).update(updateData);
+            finishEdit();
+        }
+        
+        function finishEdit() {
+            btnSimpan.disabled = false;
+            btnSimpan.textContent = "Simpan";
+            tutupModal();
+            alert('Data pembayaran berhasil diedit (Silent Mode)');
+            renderTable();
+        }
+        
+    } catch (err) {
+        console.error('Error update edit:', err);
+        btnSimpan.disabled = false;
+        btnSimpan.textContent = "Simpan";
+        alert('Gagal mengedit pembayaran');
+    }
+};
+
+btnSimpan.addEventListener('click', window.originalSimpanListener);
+
+// Rebind input listener on close so next time input bayar works
+const originalTutupModal = tutupModal;
+tutupModal = function() {
+    originalTutupModal();
+    const btnSimpan = document.getElementById('btn-simpan');
+    const newBtn = btnSimpan.cloneNode(true);
+    btnSimpan.parentNode.replaceChild(newBtn, btnSimpan);
+    newBtn.onclick = null;
+    
+    // We need to re-add the original addEventListener for standard input
+    newBtn.addEventListener('click', window.originalSimpanListener);
+};
+document.getElementById('btn-batal').onclick = tutupModal;
+document.getElementById('btn-tutup-modal').onclick = tutupModal;
+
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tagihan - Wi-Fi Billing</title>
@@ -215,7 +325,7 @@
             <div class="bg-white rounded-xl shadow-lg w-full max-w-md mx-4">
                 <!-- Modal Header -->
                 <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-purple-50 rounded-t-xl">
-                    <h3 class="text-lg font-bold text-gray-800">Input Pembayaran</h3>
+                    <h3 id="modal-title" class="text-lg font-bold text-gray-800">Input Pembayaran</h3>
                     <button id="btn-tutup-modal" class="text-gray-400 hover:text-gray-600 focus:outline-none bg-white p-1 rounded-full">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -227,6 +337,10 @@
                 <div class="p-6">
                     <form id="form-pembayaran" class="space-y-4">
                         <input type="hidden" id="input-iddoc">
+                          <input type="hidden" id="input-mode" value="input">
+                          <input type="hidden" id="input-idtransaksi">
+                          <input type="hidden" id="input-mode" value="input">
+                          <input type="hidden" id="input-idtransaksi">
                         <input type="hidden" id="input-idclient">
                         <input type="hidden" id="input-odp">
                         
@@ -587,7 +701,9 @@
                                 </svg>
                             </button>
                             <div id="dropdown-${p.idClient}" class="aksi-dropdown hidden absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg z-50 border border-gray-100 ring-1 ring-black ring-opacity-5 py-1">
-                                <button type="button" class="btn-input-pembayaran w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Input Pembayaran</button>
+                                ${p.tagihanStatus === 'Lunas' 
+  ? `<a class="dropdown-item block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600" href="javascript:void(0)" onclick="window.bukaModalEdit('${p.idClient}')">Edit Pembayaran</a>`
+  : `<button type="button" class="btn-input-pembayaran w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Input Pembayaran</button>`}
                                 <button type="button" class="btn-kirim-wa w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600">Kirim WA</button>
                                 ${btnIsolirHtml}
                                 <button type="button" class="btn-cetak-invoice w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-600">Cetak Invoice</button>
@@ -911,7 +1027,7 @@ const batchPel = db.batch();
             else containerBukti.classList.add('hidden');
         });
 
-        btnSimpan.addEventListener('click', function(e) {
+        window.originalSimpanListener = function(e) {
             e.preventDefault();
             
             const idDoc = document.getElementById('input-iddoc').value;
@@ -1009,8 +1125,10 @@ const batchPel = db.batch();
             } else {
                 prosesSimpan('');
             }
-        });
+        };
         
+        btnSimpan.addEventListener('click', window.originalSimpanListener);
+
         function logout(e) {
             e.preventDefault();
             localStorage.clear();
