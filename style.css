@@ -13,8 +13,6 @@
   }
   
   /* 2. Pastikan container utama tabel juga tidak memotong dropdown */
-  /* Netralkan efek dari table-responsive yang sering bikin scroll sendiri */
-  /* Berikan Bumper (ruang kosong) di bawah container agar dropdown punya ruang terbuka */
   .table-responsive, div.overflow-x-auto:has(table) {
     overflow: visible !important;
     padding: 0 0 120px 0 !important; /* Ruang ekstra untuk dropdown menu di bawah */
@@ -33,23 +31,21 @@
     display: none !important;
   }
 
-  /* 1. Izinkan isi kotak keluar dari batas (untuk dropdown menu) */
+  /* 1. Container Utama Card: Bikin Estetik & Rapih */
   .table-responsive table tbody tr, .overflow-x-auto table tbody tr {
-    display: block;
-    background: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    display: flex !important;
+    flex-direction: column !important;
     width: 100% !important;
     max-width: 100% !important;
+    background: #ffffff !important;
+    border-radius: 12px !important; /* Sudut melengkung modern */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important; /* Efek bayangan lembut */
+    margin: 0 0 16px 0 !important;
+    border: 1px solid #f1f5f9 !important;
     box-sizing: border-box !important;
-    margin: 0 0 15px 0 !important;
-    overflow: visible !important; /* Ganti hidden jadi visible */
-    
-    /* Atur agar card ini tidak mengganggu dropdown dari card di atasnya */
-    position: relative; 
-    z-index: 1; 
+    overflow: visible !important; /* Biarkan dropdown bisa keluar */
+    position: relative;
+    z-index: 1;
   }
   
   /* 2. Pastikan card terakhir tidak memotong konten yang keluar darinya */
@@ -73,50 +69,77 @@
     position: absolute !important;
   }
   
-  /* Geser data kanan agar lebih ke kiri (dorong dengan padding-right) */
+  /* 2. Baris Data: Flexbox Proporsional */
   .table-responsive table tbody td, .overflow-x-auto table tbody td {
     display: flex !important;
-    justify-content: flex-start !important; /* Berhenti menggunakan space-between yang ekstrem */
-    align-items: flex-start !important;
-    padding: 10px 15px 10px 0 !important; /* Tambahkan padding 15px di kanan sebagai bumper */
-    border-bottom: 1px dashed #eee;
-    text-align: right;
+    justify-content: space-between !important; /* Label di kiri, Data di kanan */
+    align-items: center !important;
+    padding: 12px 16px !important; /* Ruang napas yang lega */
+    border-bottom: 1px dashed #e2e8f0 !important; /* Garis pemisah yang elegan */
     box-sizing: border-box !important;
     width: 100% !important;
-    font-size: 14px;
   }
 
-  /* Atur porsi ruang untuk Label Kiri (Maksimal 40% layar) */
+  /* Hapus border dashed di baris terakhir agar rapi */
+  .table-responsive table tbody td:last-child, .overflow-x-auto table tbody td:last-child {
+    border-bottom: none !important;
+  }
+
+  /* 3. Kolom Label Kiri (Maksimal 35% agar tidak serakah tempat) */
   .table-responsive table tbody td::before, .overflow-x-auto table tbody td::before {
     content: attr(data-label);
-    width: 40% !important;
+    flex-basis: 35% !important;
     flex-shrink: 0 !important;
     text-align: left !important;
-    margin-right: auto !important; /* Mendorong sisa teks secukupnya saja */
-    font-weight: 600;
-    font-size: 12px;
-    color: #6c757d;
-    text-transform: uppercase;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
   }
 
-  /* Pastikan teks panjang di sebelah kanan turun ke bawah (wrap), tidak bablas ke kanan */
+  /* 4. Kolom Data Kanan (Mendapat 65% sisa ruang) */
   .table-responsive table tbody td > div,
   .table-responsive table tbody td > span,
   .table-responsive table tbody td > a,
+  .table-responsive table tbody td > text,
   .overflow-x-auto table tbody td > div,
   .overflow-x-auto table tbody td > span,
-  .overflow-x-auto table tbody td > a {
-    max-width: 60% !important;
+  .overflow-x-auto table tbody td > a,
+  .overflow-x-auto table tbody td > text {
+    flex-basis: 65% !important;
+    text-align: right !important;
     word-wrap: break-word !important;
-    word-break: break-word !important;
+    font-size: 14px !important;
+    color: #1e293b !important;
+  }
+
+  /* 5. Fix Badge Status agar tidak melipat aneh */
+  .table-responsive table tbody td span[class*="bg-"], 
+  .table-responsive table tbody td [style*="background"],
+  .overflow-x-auto table tbody td span[class*="bg-"], 
+  .overflow-x-auto table tbody td [style*="background"] {
+    white-space: nowrap !important; /* Paksa teks badge 1 baris */
+    display: inline-block !important;
+    padding: 6px 12px !important;
+    border-radius: 20px !important;
+  }
+
+  /* 6. Fix Tombol Aksi (Titik Tiga) Paling Bawah */
+  .table-responsive table tbody td[data-label="AKSI"], 
+  .table-responsive table tbody td:last-child,
+  .overflow-x-auto table tbody td[data-label="AKSI"], 
+  .overflow-x-auto table tbody td:last-child {
+    justify-content: center !important; /* Posisikan tombol di tengah bawah */
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+    background: #f8fafc !important; /* Beda warna sedikit untuk area aksi */
+    border-radius: 0 0 12px 12px !important;
   }
   
-  /* Posisikan tombol aksi di tengah bawah dengan rapi */
-  .table-responsive table tbody td:last-child, .overflow-x-auto table tbody td:last-child {
-    justify-content: center !important;
-    padding-right: 0 !important;
-    border-bottom: none;
-    padding-top: 15px;
+  /* Hilangkan label "AKSI" di sebelah kiri karena tombol ditaruh di tengah */
+  .table-responsive table tbody td:last-child::before,
+  .overflow-x-auto table tbody td:last-child::before {
+    display: none !important;
   }
 
   /* 4. Perbaikan UX Scroll Tab Filter */
