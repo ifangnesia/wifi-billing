@@ -161,3 +161,22 @@
     display: none;
   }
 }
+
+
+/* Fix Sidebar Mobile Scroll Bug */
+@media screen and (max-width: 768px) {
+  #sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important; /* modern mobile viewport */
+    overscroll-behavior: none !important; /* Mencegah scroll bocor ke background */
+  }
+  
+  /* Matikan aksi scroll sepenuhnya di dalam nav sidebar jika diminta */
+  #sidebar nav {
+    overflow-y: hidden !important;
+    touch-action: none !important;
+  }
+}
