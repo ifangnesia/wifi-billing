@@ -66,13 +66,13 @@
   .table-responsive table tbody tr:focus-within,
   .overflow-x-auto table tbody tr:hover,
   .overflow-x-auto table tbody tr:focus-within {
-    z-index: 999 !important; 
+    z-index: 20 !important; 
   }
   
   /* 3. Paksa dropdown menu untuk selalu tampil penuh di atas segalanya */
   .table-responsive .dropdown-menu,
   .overflow-x-auto .dropdown-menu {
-    z-index: 9999 !important;
+    z-index: 40 !important;
     position: absolute !important;
   }
   
