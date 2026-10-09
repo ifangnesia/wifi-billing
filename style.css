@@ -20,10 +20,17 @@
     width: 100% !important;
   }
 
-  /* Pastikan Card tidak melebar keluar layar (Box Sizing Fix) */
+  /* Pastikan Card memenuhi layar secara estetik (Box Sizing Fix & Stretch) */
   .table-responsive table, .overflow-x-auto table {
     width: 100% !important;
+    min-width: 100% !important;
+    display: block !important;
     margin: 0 !important;
+  }
+
+  .table-responsive table tbody, .overflow-x-auto table tbody {
+    display: block !important;
+    width: 100% !important;
   }
 
   /* 2. Ubah SEMUA Tabel menjadi Card UI */
