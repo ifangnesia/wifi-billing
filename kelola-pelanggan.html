@@ -188,6 +188,8 @@
                             <option value="za">Nama (Z - A)</option>
                             <option value="tempoTerdekat">Jatuh Tempo (Terdekat)</option>
                             <option value="tempoTerlama">Jatuh Tempo (Terlama)</option>
+                            <option value="hargaTerendah">Harga (Terendah)</option>
+                            <option value="hargaTertinggi">Harga (Tertinggi)</option>
                         </select>
                     </div>
 
@@ -221,13 +223,14 @@
                                 <th class="py-4 px-4 font-semibold">Kontak</th>
                                 <th class="py-4 px-4 font-semibold">Area & Detail Alamat</th>
                                 <th class="py-4 px-4 font-semibold">Paket</th>
+                                <th class="py-4 px-4 font-semibold">Harga</th>
                                 <th class="py-4 px-4 font-semibold">Jatuh Tempo</th>
                                 <th class="py-4 px-4 font-semibold">Status</th>
                                 <th class="py-4 px-4 font-semibold text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="tabel-pelanggan" class="text-sm text-gray-700 divide-y divide-gray-50">
-                            <tr><td colspan="8" class="py-8 text-center text-gray-500 italic">Memuat data pelanggan...</td></tr>
+                            <tr><td colspan="9" class="py-8 text-center text-gray-500 italic">Memuat data pelanggan...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -386,6 +389,10 @@
                     <div class="col-span-2 font-semibold text-gray-800" id="detail-paket">-</div>
                 </div>
                 <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-3">
+                    <div class="font-medium text-gray-500">Harga Paket</div>
+                    <div class="col-span-2 font-semibold text-gray-800" id="detail-harga">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-3">
                     <div class="font-medium text-gray-500">Jatuh Tempo</div>
                     <div class="col-span-2 text-gray-800" id="detail-jatuhTempo">-</div>
                 </div>
@@ -473,8 +480,9 @@
             return 0;
         }
 
-        document.getElementById('sortDataPelanggan').addEventListener('change', function(e) {
-            const val = e.target.value;
+        function applyCurrentSort() {
+            const select = document.getElementById('sortDataPelanggan');
+            const val = select ? select.value : 'default';
             pelangganData.sort((a, b) => {
                 if (val === 'az') {
                     return (a.nama || '').localeCompare(b.nama || '');
@@ -484,9 +492,19 @@
                     return parseTanggalIndo(a.jatuhTempo) - parseTanggalIndo(b.jatuhTempo);
                 } else if (val === 'tempoTerlama') {
                     return parseTanggalIndo(b.jatuhTempo) - parseTanggalIndo(a.jatuhTempo);
+                } else if (val === 'hargaTerendah') {
+                    const diff = getHargaPaket(a) - getHargaPaket(b);
+                    return diff !== 0 ? diff : (a.nama || '').localeCompare(b.nama || '');
+                } else if (val === 'hargaTertinggi') {
+                    const diff = getHargaPaket(b) - getHargaPaket(a);
+                    return diff !== 0 ? diff : (a.nama || '').localeCompare(b.nama || '');
                 }
                 return (a.idClient > b.idClient) ? 1 : -1; // default
             });
+        }
+
+        document.getElementById('sortDataPelanggan').addEventListener('change', function(e) {
+            applyCurrentSort();
             renderTable();
         });
 
@@ -724,6 +742,10 @@
                 inputPaket.appendChild(opt);
             });
             if (currentValue) inputPaket.value = currentValue;
+            if (pelangganData && pelangganData.length > 0) {
+                applyCurrentSort();
+                renderTable();
+            }
         });
 
 
@@ -765,7 +787,7 @@
                 else if (data._calcStatus === 'Inactive') countInactive++;
             });
             
-            pelangganData.sort((a, b) => (a.idClient > b.idClient) ? 1 : -1);
+            applyCurrentSort();
             
             // Update Metric Cards
             document.getElementById('card-total').textContent = countTotal;
@@ -775,6 +797,60 @@
 
             renderTable();
         });
+
+        function formatRupiah(angka) {
+            if (!angka) return 'Rp 0';
+            return 'Rp ' + parseInt(angka, 10).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        function getHargaPaket(p) {
+            if (!p) return 0;
+            const pPaket = (p.paket || '').trim();
+
+            // 1. Cek langsung dari master profiles Firestore (dataProfiles) berdasarkan nama paket yang diambil
+            if (dataProfiles && dataProfiles.length > 0 && pPaket) {
+                // a. Match persis nama paket (case-sensitive)
+                let found = dataProfiles.find(prof => {
+                    const profName = (prof.name || prof.namaProfile || '').trim();
+                    return profName === pPaket;
+                });
+
+                // b. Match persis nama paket (case-insensitive)
+                if (!found) {
+                    found = dataProfiles.find(prof => {
+                        const profName = (prof.name || prof.namaProfile || '').trim();
+                        return profName.toLowerCase() === pPaket.toLowerCase();
+                    });
+                }
+
+                // c. Match persis tanpa spasi berlebih
+                if (!found) {
+                    const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                    found = dataProfiles.find(prof => {
+                        const profName = (prof.name || prof.namaProfile || '').trim();
+                        return norm(profName) === norm(pPaket);
+                    });
+                }
+
+                if (found) {
+                    const rawVal = found.price !== undefined ? found.price : found.hargaProfile;
+                    const parsedVal = parseInt(String(rawVal).replace(/[^0-9]/g, ''), 10);
+                    if (!isNaN(parsedVal) && parsedVal > 0) {
+                        return parsedVal;
+                    }
+                }
+            }
+
+            // 2. Fallback jika ada nominalPaket pada data pelanggan
+            if (p.nominalPaket) {
+                const parsedNominal = parseInt(String(p.nominalPaket).replace(/[^0-9]/g, ''), 10);
+                if (!isNaN(parsedNominal) && parsedNominal > 0) {
+                    return parsedNominal;
+                }
+            }
+
+            return 0;
+        }
 
         function formatTanggal(dateString) {
             if(!dateString) return '-';
@@ -808,6 +884,8 @@
                 document.getElementById('detail-area').textContent = pelanggan.area || '-';
                 document.getElementById('detail-odp').textContent = pelanggan.odp ? 'ODP ' + pelanggan.odp : '-';
                 document.getElementById('detail-paket').textContent = pelanggan.paket || '-';
+                const harga = getHargaPaket(pelanggan);
+                document.getElementById('detail-harga').textContent = harga > 0 ? formatRupiah(harga) : '-';
                 document.getElementById('detail-jatuhTempo').textContent = pelanggan.jatuhTempo ? formatTanggal(pelanggan.jatuhTempo) : '-';
                 
                 let badge = '';
@@ -919,7 +997,7 @@
             }
 
             if (displayData.length === 0) {
-                tabelPelanggan.innerHTML = '<tr><td colspan="8" class="py-12 text-center text-sm text-gray-500 italic">Tidak ada data pelanggan yang cocok dengan filter</td></tr>';
+                tabelPelanggan.innerHTML = '<tr><td colspan="9" class="py-12 text-center text-sm text-gray-500 italic">Tidak ada data pelanggan yang cocok dengan filter</td></tr>';
                 toggleDeleteBtn();
                 return;
             }
@@ -935,6 +1013,9 @@
                 } else {
                     badgeHtml = `<span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-medium text-xs border border-gray-200">Inactive</span>`;
                 }
+
+                const harga = getHargaPaket(p);
+                const hargaFormatted = harga > 0 ? formatRupiah(harga) : '-';
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50 transition-colors';
@@ -959,7 +1040,8 @@
                             <span style="color: #6c757d; font-size: 13px;">${p.detailAlamat || '-'}</span>
                         </div>
                     </td>
-                    <td class="py-4 px-4 text-sm text-gray-700" data-label="Paket">${p.paket}</td>
+                    <td class="py-4 px-4 text-sm text-gray-700" data-label="Paket">${p.paket || '-'}</td>
+                    <td class="py-4 px-4 text-sm font-semibold text-gray-800" data-label="Harga">${hargaFormatted}</td>
                     <td class="py-4 px-4 text-sm text-gray-600" data-label="Jatuh Tempo">${formatTanggal(p.jatuhTempo)}</td>
                     <td class="py-4 px-4" data-label="Status">
                         ${badgeHtml}
@@ -1131,22 +1213,44 @@
             if (totalKlient === 0) return alert('Tidak ada data untuk dicetak.');
             
             // Sort Logic
-            const today = new Date();
-            const currYear = today.getFullYear();
-            const currMonth = today.getMonth();
-            
-            let dataToPrint = [...displayData].sort((a, b) => {
-                let aJt = a.jatuhTempo ? new Date(a.jatuhTempo) : new Date(0);
-                let bJt = b.jatuhTempo ? new Date(b.jatuhTempo) : new Date(0);
+            const sortVal = document.getElementById('sortDataPelanggan')?.value || 'default';
+            let dataToPrint = [...displayData];
+
+            if (sortVal === 'hargaTerendah') {
+                dataToPrint.sort((a, b) => {
+                    const diff = getHargaPaket(a) - getHargaPaket(b);
+                    return diff !== 0 ? diff : (a.nama || '').localeCompare(b.nama || '');
+                });
+            } else if (sortVal === 'hargaTertinggi') {
+                dataToPrint.sort((a, b) => {
+                    const diff = getHargaPaket(b) - getHargaPaket(a);
+                    return diff !== 0 ? diff : (a.nama || '').localeCompare(b.nama || '');
+                });
+            } else if (sortVal === 'az') {
+                dataToPrint.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+            } else if (sortVal === 'za') {
+                dataToPrint.sort((a, b) => (b.nama || '').localeCompare(a.nama || ''));
+            } else if (sortVal === 'tempoTerlama') {
+                dataToPrint.sort((a, b) => parseTanggalIndo(b.jatuhTempo) - parseTanggalIndo(a.jatuhTempo));
+            } else {
+                // Default / tempoTerdekat: Belum bayar bulan ini di atas, Lunas di bawah, urut tempo terdekat
+                const today = new Date();
+                const currYear = today.getFullYear();
+                const currMonth = today.getMonth();
                 
-                let aIsPaid = (aJt.getFullYear() > currYear) || (aJt.getFullYear() === currYear && aJt.getMonth() > currMonth);
-                let bIsPaid = (bJt.getFullYear() > currYear) || (bJt.getFullYear() === currYear && bJt.getMonth() > currMonth);
-                
-                if (aIsPaid && !bIsPaid) return 1;
-                if (!aIsPaid && bIsPaid) return -1;
-                
-                return aJt - bJt;
-            });
+                dataToPrint.sort((a, b) => {
+                    let aJt = a.jatuhTempo ? new Date(a.jatuhTempo) : new Date(0);
+                    let bJt = b.jatuhTempo ? new Date(b.jatuhTempo) : new Date(0);
+                    
+                    let aIsPaid = (aJt.getFullYear() > currYear) || (aJt.getFullYear() === currYear && aJt.getMonth() > currMonth);
+                    let bIsPaid = (bJt.getFullYear() > currYear) || (bJt.getFullYear() === currYear && bJt.getMonth() > currMonth);
+                    
+                    if (aIsPaid && !bIsPaid) return 1;
+                    if (!aIsPaid && bIsPaid) return -1;
+                    
+                    return aJt - bJt;
+                });
+            }
             
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('landscape');
@@ -1168,10 +1272,13 @@
                     const d = new Date(data.jatuhTempo);
                     jtStr = d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth()+1).toString().padStart(2, '0') + '/' + d.getFullYear();
                 }
+                const harga = getHargaPaket(data);
+                const hargaStr = harga > 0 ? formatRupiah(harga) : '-';
                 
                 return [
                     "",
                     data.idClient || "",
+                    hargaStr,
                     data.nama || "",
                     data.noWa || "",
                     data.area || "",
@@ -1184,7 +1291,7 @@
             
             doc.autoTable({
                 startY: 30,
-                head: [['BOX', 'ID CLIENT', 'NAMA PELANGGAN', 'NO WA', 'AREA', 'NO ODP', 'PAKET LANGGANAN', 'JATUH TEMPO', 'DETAIL ALAMAT']],
+                head: [['BOX', 'ID CLIENT', 'HARGA', 'NAMA PELANGGAN', 'NO WA', 'AREA', 'NO ODP', 'PAKET LANGGANAN', 'JATUH TEMPO', 'DETAIL ALAMAT']],
                 body: tableData,
                 theme: 'grid',
                 headStyles: {
@@ -1199,15 +1306,16 @@
                     valign: 'middle'
                 },
                 columnStyles: {
-                    0: { cellWidth: 15 },
-                    1: { cellWidth: 28 },
-                    2: { cellWidth: 40 },
-                    3: { cellWidth: 32 },
-                    4: { cellWidth: 15 },
-                    5: { cellWidth: 20 },
-                    6: { cellWidth: 40 },
-                    7: { cellWidth: 30 },
-                    8: { cellWidth: 'auto' }
+                    0: { cellWidth: 12, halign: 'center' },
+                    1: { cellWidth: 26, halign: 'center' },
+                    2: { cellWidth: 25, halign: 'center' },
+                    3: { cellWidth: 35 },
+                    4: { cellWidth: 30, halign: 'center' },
+                    5: { cellWidth: 15, halign: 'center' },
+                    6: { cellWidth: 18, halign: 'center' },
+                    7: { cellWidth: 38 },
+                    8: { cellWidth: 25, halign: 'center' },
+                    9: { cellWidth: 'auto' }
                 }
             });
             
