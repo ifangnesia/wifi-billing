@@ -38,14 +38,16 @@ window.bukaModalEdit = async function(idClient) {
         if (!snap.empty) {
             const trx = snap.docs[0].data();
             document.getElementById('input-idtransaksi').value = snap.docs[0].id;
-            document.getElementById('input-nominal').value = trx.nominal || parseNominal(client.nominalPaket);
+            const defHarga = (window.getHargaPaket ? window.getHargaPaket(client) : 0) || (window.parseNominal ? window.parseNominal(client.nominalPaket) : 0);
+            document.getElementById('input-nominal').value = trx.nominal || defHarga;
             if (trx.metode) {
                 document.getElementById('input-metode').value = trx.metode;
                 if (trx.metode === 'Transfer') document.getElementById('container-bukti').classList.remove('hidden');
                 else document.getElementById('container-bukti').classList.add('hidden');
             }
         } else {
-            document.getElementById('input-nominal').value = parseNominal(client.nominalPaket);
+            const defHarga = (window.getHargaPaket ? window.getHargaPaket(client) : 0) || (window.parseNominal ? window.parseNominal(client.nominalPaket) : 0);
+            document.getElementById('input-nominal').value = defHarga;
         }
         document.getElementById('modal-pembayaran').classList.remove('hidden');
     });
@@ -124,10 +126,20 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
     <title>Tagihan - Wi-Fi Billing</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <style>
         body { font-family: 'Inter', sans-serif; }
+
+        /* Khusus Tampilan Mobile di Tagihan: Shadow pembatas antar data pelanggan dibuat lebih gelap & kontras */
+        @media screen and (max-width: 768px) {
+            .table-responsive table tbody tr, 
+            .overflow-x-auto table tbody tr {
+                box-shadow: 0 10px 22px -3px rgba(0, 0, 0, 0.22), 0 4px 8px -2px rgba(0, 0, 0, 0.12) !important;
+                border: 1px solid #cbd5e1 !important;
+                margin-bottom: 20px !important;
+            }
+        }
     </style>
-    <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased flex h-screen overflow-hidden">
 
@@ -206,9 +218,21 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
     <main class="flex-1 flex flex-col h-full overflow-hidden pt-16 md:pt-0">
         
         <!-- Topbar / Header Atas -->
-        <header class="bg-white shadow-sm px-8 py-5 shrink-0 z-10 relative flex justify-between items-center">
+        <header class="bg-white shadow-sm px-8 py-4 md:py-5 shrink-0 z-20 relative flex justify-between items-center">
             <div>
                 <h2 class="text-xl font-bold text-gray-800">Tagihan</h2>
+            </div>
+
+            <!-- Tombol Tindakan Masal (Headline) -->
+            <div class="relative hidden" id="bulk-action-container">
+                <button id="btn-tindakan" class="bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 shadow-sm">
+                    <span>Tindakan</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                <div id="dropdown-tindakan" class="hidden absolute top-full mt-1.5 bg-white border border-gray-200 rounded-md shadow-lg py-1 w-56 z-50 right-0">
+                    <a href="#" id="bulk-lunas-cash" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Input sebagai Lunas (Cash)</a>
+                    <a href="#" id="bulk-lunas-transfer" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Input sebagai Lunas (Transfer)</a>
+                </div>
             </div>
         </header>
 
@@ -272,19 +296,7 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
 
                 </div>
 
-                
-                  <div class="inline-flex items-center shrink-0 ml-auto mr-4 relative hidden" id="bulk-action-container">
-                      <button id="btn-tindakan" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap flex items-center gap-1 shadow-sm">
-                          <span>Tindakan</span>
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                      </button>
-                      <div id="dropdown-tindakan" class="hidden absolute top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg py-1 w-56 z-50 right-0">
-                          <a href="#" id="bulk-lunas-cash" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Input sebagai Lunas (Cash)</a>
-                          <a href="#" id="bulk-lunas-transfer" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Input sebagai Lunas (Transfer)</a>
-                      </div>
-                  </div>
-
-                  <!-- Search -->
+                <!-- Search -->
                 <div class="relative w-full md:w-72">
                     <input type="text" id="input-search" placeholder="Cari nama / ID pelanggan..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white transition-colors">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -305,6 +317,8 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
                                   <th class="py-4 px-6 font-semibold w-16">No</th>
                                 <th class="py-4 px-6 font-semibold">ID Client</th>
                                 <th class="py-4 px-6 font-semibold">Nama Pelanggan</th>
+                                <th class="py-4 px-6 font-semibold">Paket Langganan</th>
+                                <th class="py-4 px-6 font-semibold">Harga</th>
                                 <th class="py-4 px-6 font-semibold">ODP</th>
                                 <th class="py-4 px-6 font-semibold">Status / Jatuh Tempo</th>
                                 <th class="py-4 px-6 font-semibold text-center w-24">Aksi</th>
@@ -312,7 +326,7 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
                         </thead>
                         <tbody class="text-sm text-gray-700 divide-y divide-gray-50">
                             <tr>
-                                <td colspan="6" class="py-12 text-center italic text-gray-500">Memuat Tagihan...</td>
+                                <td colspan="9" class="py-12 text-center italic text-gray-500">Memuat Tagihan...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -436,7 +450,7 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
                         if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.slice(1);
                         
                         const formatRp = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-                        const nominalTagihan = formatRp(parseNominal(p.nominalPaket));
+                        const nominalTagihan = formatRp(getHargaPaket(p) || parseNominal(p.nominalPaket));
                         
                         const pesanSuspensi = `Yth. Bapak/Ibu ${p.nama},\n\nKami informasikan bahwa masa aktif tagihan layanan internet Anda telah jatuh tempo hari ini. Agar layanan tidak terisolir (terputus otomatis oleh sistem), mohon segera melakukan penyelesaian pembayaran.\n\nRincian tagihan Anda:\n· ID Client: ${p.idClient}\n· Paket Langganan: ${p.paket}\n· Total Tagihan: ${nominalTagihan}\n· Status: Belum Lunas / Jatuh Tempo\n\nJika Anda sudah melakukan pembayaran, mohon abaikan pesan ini atau kirimkan bukti transfer ke balasan pesan ini.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 👉 https://wifi-billing-two.vercel.app/form-ticket.html\n\nTerima kasih atas perhatian dan kerja samanya.\n\nIfangsnesia Customer Care`;
                         
@@ -467,9 +481,76 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
         }
 
         let dataPelanggan = [];
+        let dataProfiles = [];
         let currentFilter = 'Semua';
         let searchQuery = '';
         let currentFilterDate = '';
+
+        function formatRupiah(angka) {
+            if (!angka) return 'Rp 0';
+            return 'Rp ' + parseInt(angka, 10).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        function getHargaPaket(p) {
+            if (!p) return 0;
+            const pPaket = (p.paket || '').trim();
+
+            // 1. Cek langsung dari master profiles Firestore (dataProfiles) berdasarkan nama paket yang diambil
+            if (dataProfiles && dataProfiles.length > 0 && pPaket) {
+                // a. Match persis nama paket (case-sensitive)
+                let found = dataProfiles.find(prof => {
+                    const profName = (prof.name || prof.namaProfile || '').trim();
+                    return profName === pPaket;
+                });
+
+                // b. Match persis nama paket (case-insensitive)
+                if (!found) {
+                    found = dataProfiles.find(prof => {
+                        const profName = (prof.name || prof.namaProfile || '').trim();
+                        return profName.toLowerCase() === pPaket.toLowerCase();
+                    });
+                }
+
+                // c. Match persis tanpa spasi berlebih
+                if (!found) {
+                    const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                    found = dataProfiles.find(prof => {
+                        const profName = (prof.name || prof.namaProfile || '').trim();
+                        return norm(profName) === norm(pPaket);
+                    });
+                }
+
+                if (found) {
+                    const rawVal = found.price !== undefined ? found.price : found.hargaProfile;
+                    const parsedVal = parseInt(String(rawVal).replace(/[^0-9]/g, ''), 10);
+                    if (!isNaN(parsedVal) && parsedVal > 0) {
+                        return parsedVal;
+                    }
+                }
+            }
+
+            // 2. Fallback jika ada nominalPaket pada data pelanggan
+            if (p.nominalPaket) {
+                const parsedNominal = parseInt(String(p.nominalPaket).replace(/[^0-9]/g, ''), 10);
+                if (!isNaN(parsedNominal) && parsedNominal > 0) {
+                    return parsedNominal;
+                }
+            }
+
+            return 0;
+        }
+        window.getHargaPaket = getHargaPaket;
+
+        db.collection('profiles').onSnapshot((snapshot) => {
+            dataProfiles = [];
+            snapshot.forEach(doc => {
+                dataProfiles.push({ id: doc.id, ...doc.data() });
+            });
+            if (dataPelanggan && dataPelanggan.length > 0) {
+                updateMetrics();
+                renderTable();
+            }
+        });
 
         function setFilterTagihan(status) {
             currentFilter = status;
@@ -577,11 +658,12 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
             const str = String(nomStr).replace(/[^0-9]/g, '');
             return parseInt(str, 10) || 0;
         }
+        window.parseNominal = parseNominal;
 
         function updateMetrics() {
             let total = 0, unpaid = 0, overdue = 0;
             dataPelanggan.forEach(p => {
-                const nom = parseNominal(p.nominalPaket);
+                const nom = getHargaPaket(p) || parseNominal(p.nominalPaket);
                 total += nom; 
                 if (p.tagihanStatus === 'Belum Bayar') unpaid += nom;
                 if (p.tagihanStatus === 'Jatuh Tempo') overdue += nom;
@@ -636,7 +718,7 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
             tbody.innerHTML = '';
             
             if (displayData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center text-sm text-gray-500 italic">Tidak ada data tagihan yang sesuai</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="py-12 text-center text-sm text-gray-500 italic">Tidak ada data tagihan yang sesuai</td></tr>';
                 return;
             }
 
@@ -664,7 +746,9 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
                 const invNumber = `${p.idClient}/INV/${yy}${mm}`;
                 const tglCetak = dDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
                 const noKontrak = `${p.idClient}/GMDP`;
-                const totalTagihan = 'Rp ' + parseNominal(p.nominalPaket).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                const harga = getHargaPaket(p);
+                const hargaFormatted = harga > 0 ? formatRupiah(harga) : '-';
+                const totalTagihan = 'Rp ' + (harga || parseNominal(p.nominalPaket) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
                 const formatter = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' });
                 const periodeTagihan = formatter.format(dDate);
                 const namaPaket = p.paket ? "Biaya Langganan " + p.paket : "Biaya Koneksi Internet";
@@ -688,6 +772,8 @@ document.getElementById('btn-tutup-modal').onclick = tutupModal;
                       <td class="py-4 px-6" data-label="No"><span>${index + 1}</span></td>
                     <td class="py-4 px-6 font-bold text-purple-700" data-label="ID Client"><span>${p.idClient}</span></td>
                     <td class="py-4 px-6 font-medium text-gray-900" data-label="Nama Pelanggan"><span>${p.nama}</span></td>
+                    <td class="py-4 px-6 text-sm text-gray-700" data-label="Paket Langganan"><span>${p.paket || '-'}</span></td>
+                    <td class="py-4 px-6 text-sm font-semibold text-gray-800" data-label="Harga"><span>${hargaFormatted}</span></td>
                     <td class="py-4 px-6" data-label="ODP"><span>ODP ${p.odp}</span></td>
                     <td class="py-4 px-6" data-label="Status Tagihan">
                         <div class="mb-1">${statusBadge}</div>
@@ -815,7 +901,7 @@ const batchPel = db.batch();
                         idClient: clientData.idClient,
                         namaClient: clientData.nama,
                         odp: clientData.odp,
-                        nominal: parseNominal(clientData.nominalPaket),
+                        nominal: getHargaPaket(clientData) || parseNominal(clientData.nominalPaket),
                         metode: metode,
                         bukti: '',
                         status: 'Lunas',
@@ -830,7 +916,8 @@ const batchPel = db.batch();
                         let formattedNumber = clientData.noWa.trim();
                         if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.slice(1);
                         const formatRp = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-                        const pesanLunas = `Halo Kak ${clientData.nama},\n\nTerima kasih! Pembayaran untuk layanan internet Anda telah berhasil kami terima dan verifikasi oleh sistem.\n\nRincian transaksi Anda:\n• ID Client: ${idClient}\n• Paket Langganan: ${clientData.paket || '-'}\n• Nominal Dibayar: ${formatRp(parseNominal(clientData.nominalPaket))}\n• Status: LUNAS (Aktif hingga periode berikutnya)\n\nNota/Invoice resmi transaksi ini dapat Anda unduh atau cetak langsung melalui sistem portal pelanggan kami.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 🛠️ https://wifi-billing-two.vercel.app/form-ticket.html\n\nSelamat menikmati kembali koneksi internet cepat dari kami!\n\nIfangsnesia Customer Care`;
+                        const nominalLunas = formatRp(getHargaPaket(clientData) || parseNominal(clientData.nominalPaket));
+                        const pesanLunas = `Halo Kak ${clientData.nama},\n\nTerima kasih! Pembayaran untuk layanan internet Anda telah berhasil kami terima dan verifikasi oleh sistem.\n\nRincian transaksi Anda:\n• ID Client: ${idClient}\n• Paket Langganan: ${clientData.paket || '-'}\n• Nominal Dibayar: ${nominalLunas}\n• Status: LUNAS (Aktif hingga periode berikutnya)\n\nNota/Invoice resmi transaksi ini dapat Anda unduh atau cetak langsung melalui sistem portal pelanggan kami.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 🛠️ https://wifi-billing-two.vercel.app/form-ticket.html\n\nSelamat menikmati kembali koneksi internet cepat dari kami!\n\nIfangsnesia Customer Care`;
                         waMessages.push({ target: formattedNumber, message: pesanLunas, countryCode: '62' });
                     }
 
@@ -916,7 +1003,7 @@ const batchPel = db.batch();
                     document.getElementById('input-odp').value = client.odp || '';
                     document.getElementById('input-nama').value = client.nama;
                     document.getElementById('input-area').value = client.area || '';
-                    document.getElementById('input-nominal').value = parseNominal(client.nominalPaket);
+                    document.getElementById('input-nominal').value = getHargaPaket(client) || parseNominal(client.nominalPaket);
                     
                     document.getElementById('modal-pembayaran').classList.remove('hidden');
                 }
