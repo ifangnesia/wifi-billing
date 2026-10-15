@@ -46,13 +46,14 @@
     max-width: 100% !important;
     background: #ffffff !important;
     border-radius: 12px !important; /* Sudut melengkung modern */
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important; /* Efek bayangan lembut */
-    margin: 0 0 16px 0 !important;
-    border: 1px solid #f1f5f9 !important;
+    box-shadow: 0 10px 22px -3px rgba(0, 0, 0, 0.22), 0 4px 8px -2px rgba(0, 0, 0, 0.12) !important; /* Efek bayangan lebih gelap & kontras untuk pembatas antar data */
+    margin: 0 0 20px 0 !important;
+    border: 1px solid #cbd5e1 !important;
     box-sizing: border-box !important;
     overflow: visible !important; /* Biarkan dropdown bisa keluar */
     position: relative;
     z-index: 1;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   
   /* 2. Pastikan card terakhir tidak memotong konten yang keluar darinya */
