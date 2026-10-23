@@ -976,7 +976,8 @@ const batchPel = db.batch();
                         bukti: '',
                         status: 'Lunas',
                         area: clientData.area || '',
-                        admin: adminName
+                        admin: adminName,
+                        previousJatuhTempo: clientData.jatuhTempo || ''
                     });
                     
                     
@@ -1223,7 +1224,8 @@ const batchPel = db.batch();
                         bukti: buktiBase64,
                         status: 'Lunas',
                         area: area,
-                        admin: adminName
+                        admin: adminName,
+                        previousJatuhTempo: clientData.jatuhTempo || ''
                     });
 
                     // Update Jatuh Tempo (+1 bulan)

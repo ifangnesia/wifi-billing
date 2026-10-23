@@ -562,7 +562,8 @@
                         bukti: buktiBase64,
                         status: 'Lunas',
                         area: area,
-                        admin: adminName
+                        admin: adminName,
+                        previousJatuhTempo: client.jatuhTempo || ''
                     });
 
                     // Update Jatuh Tempo (+1 bulan)
@@ -809,6 +810,31 @@
             }
         });
         
+        // Helper untuk memundurkan tanggal 1 bulan secara presisi (kebal timezone & month-end overflow)
+        function rollbackOneMonth(dateStr) {
+            if (!dateStr) return '';
+            const parts = String(dateStr).trim().split('-');
+            if (parts.length === 3) {
+                let year = parseInt(parts[0], 10);
+                let month = parseInt(parts[1], 10); // 1-12
+                let day = parseInt(parts[2], 10);
+                
+                month -= 1;
+                if (month < 1) {
+                    month = 12;
+                    year -= 1;
+                }
+                const maxDays = new Date(year, month, 0).getDate();
+                if (day > maxDays) day = maxDays;
+                
+                return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+            }
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            d.setMonth(d.getMonth() - 1);
+            return d.toISOString().split('T')[0];
+        }
+
         if (btnHapusMasal) {
             btnHapusMasal.addEventListener('click', async function() {
                 if (roleQ !== 'master' && roleQ !== 'masteradmin') { 
@@ -819,27 +845,75 @@
                 const checkedBoxes = document.querySelectorAll('.checkbox-item:checked');
                 if (checkedBoxes.length === 0) return;
                 
-                if (!confirm(`Yakin ingin menghapus ${checkedBoxes.length} riwayat transaksi terpilih? Pendapatan bulan ini akan ikut berkurang.`)) return;
+                if (!confirm(`Yakin ingin menghapus ${checkedBoxes.length} riwayat transaksi terpilih? Tanggal jatuh tempo pelanggan terkait akan otomatis dikembalikan (di-rollback).`)) return;
                 
-                btnHapusMasal.textContent = "Menghapus...";
+                btnHapusMasal.textContent = "Menghapus & Rollback...";
                 btnHapusMasal.disabled = true;
                 
                 try {
                     const batch = db.batch();
+                    const clientRollbacks = {};
+                    
                     checkedBoxes.forEach(cb => {
                         const idDoc = cb.value;
-                        const txRef = db.collection('transaksi').doc(idDoc);
-                        batch.delete(txRef);
+                        const tx = dataTransaksi.find(t => t.idDoc === idDoc);
+                        batch.delete(db.collection('transaksi').doc(idDoc));
+                        
+                        if (tx && tx.idClient) {
+                            if (!clientRollbacks[tx.idClient]) {
+                                clientRollbacks[tx.idClient] = [];
+                            }
+                            clientRollbacks[tx.idClient].push(tx);
+                        }
                     });
                     
+                    for (const idClient in clientRollbacks) {
+                        const txList = clientRollbacks[idClient];
+                        let client = dataPelanggan.find(p => p.idClient === idClient);
+                        if (!client) {
+                            const pelSnap = await db.collection('pelanggan').where('idClient', '==', idClient).limit(1).get();
+                            if (!pelSnap.empty) {
+                                client = pelSnap.docs[0].data();
+                                client.idDoc = pelSnap.docs[0].id;
+                            }
+                        }
+                        
+                        if (client && client.idDoc && client.jatuhTempo) {
+                            txList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                            let currentJt = client.jatuhTempo;
+                            if (txList.length === 1 && txList[0].previousJatuhTempo) {
+                                currentJt = txList[0].previousJatuhTempo;
+                            } else {
+                                for (let i = 0; i < txList.length; i++) {
+                                    currentJt = rollbackOneMonth(currentJt);
+                                }
+                            }
+                            
+                            const jtDateOnly = new Date(currentJt);
+                            jtDateOnly.setHours(0, 0, 0, 0);
+                            const todayDateOnly = new Date();
+                            todayDateOnly.setHours(0, 0, 0, 0);
+                            
+                            const isPast = todayDateOnly > jtDateOnly;
+                            const newStatus = isPast ? "Isolir" : "Aktif";
+                            const isIsolir = isPast;
+                            
+                            batch.update(db.collection('pelanggan').doc(client.idDoc), {
+                                jatuhTempo: currentJt,
+                                status: newStatus,
+                                isIsolir: isIsolir
+                            });
+                        }
+                    }
+                    
                     await batch.commit();
-                    alert(`Berhasil menghapus ${checkedBoxes.length} transaksi!`);
+                    alert(`Berhasil menghapus ${checkedBoxes.length} transaksi! Tanggal jatuh tempo pelanggan terkait telah otomatis dikembalikan.`);
                     
                     document.getElementById('checkbox-all').checked = false;
                     toggleHapusMasal();
                 } catch (err) {
                     console.error("Error bulk delete:", err);
-                    alert("Gagal menghapus riwayat transaksi.");
+                    alert("Gagal menghapus riwayat transaksi: " + err.message);
                 } finally {
                     btnHapusMasal.textContent = "Hapus Terpilih";
                     btnHapusMasal.disabled = false;
