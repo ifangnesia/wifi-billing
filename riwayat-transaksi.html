@@ -162,6 +162,8 @@
                             <option value="Cash">Cash</option>
                             <option value="Transfer">Transfer</option>
                             <option value="Xendit">Xendit</option>
+                            <option value="nominalTerendah">Nominal (Terendah)</option>
+                            <option value="nominalTertinggi">Nominal (Tertinggi)</option>
                         </select>
                         <select id="filter-area" class="hidden px-4 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer">
                             <option value="Semua">Semua Area</option>
@@ -420,7 +422,7 @@
             
             let displayData = dataTransaksi.filter(tx => {
                 const inMonth = !filterMonth || (tx.tanggalTransaksi && tx.tanggalTransaksi.startsWith(filterMonth));
-                const inMetode = filterMetode === 'Semua' || tx.metode === filterMetode;
+                const inMetode = (filterMetode === 'Semua' || filterMetode === 'nominalTerendah' || filterMetode === 'nominalTertinggi') || tx.metode === filterMetode;
                 const inArea = filterArea === 'Semua' || tx.area === filterArea;
                 const inSearch = !searchQuery || (
                     (tx.idTransaksi && tx.idTransaksi.toLowerCase().includes(searchQuery)) ||
@@ -430,6 +432,20 @@
                 );
                 return inMonth && inMetode && inArea && inSearch;
             });
+
+            if (filterMetode === 'nominalTerendah') {
+                displayData.sort((a, b) => {
+                    const diff = (parseInt(a.nominal) || 0) - (parseInt(b.nominal) || 0);
+                    return diff !== 0 ? diff : (b.idTransaksi || '').localeCompare(a.idTransaksi || '');
+                });
+            } else if (filterMetode === 'nominalTertinggi') {
+                displayData.sort((a, b) => {
+                    const diff = (parseInt(b.nominal) || 0) - (parseInt(a.nominal) || 0);
+                    return diff !== 0 ? diff : (b.idTransaksi || '').localeCompare(a.idTransaksi || '');
+                });
+            } else {
+                displayData.sort((a, b) => (b.idTransaksi || '').localeCompare(a.idTransaksi || ''));
+            }
 
             const checkAll = document.getElementById('checkAll');
             checkAll.checked = false;
@@ -715,7 +731,7 @@
         function generatePDF() {
             const reportData = dataTransaksi.filter(tx => {
                 const inMonth = !filterMonth || (tx.tanggalTransaksi && tx.tanggalTransaksi.startsWith(filterMonth));
-                const inMetode = filterMetode === 'Semua' || tx.metode === filterMetode;
+                const inMetode = (filterMetode === 'Semua' || filterMetode === 'nominalTerendah' || filterMetode === 'nominalTertinggi') || tx.metode === filterMetode;
                 const inArea = filterArea === 'Semua' || tx.area === filterArea;
                 const inSearch = !searchQuery || (
                     (tx.idTransaksi && tx.idTransaksi.toLowerCase().includes(searchQuery)) ||
@@ -725,6 +741,20 @@
                 );
                 return inMonth && inMetode && inArea && inSearch;
             });
+
+            if (filterMetode === 'nominalTerendah') {
+                reportData.sort((a, b) => {
+                    const diff = (parseInt(a.nominal) || 0) - (parseInt(b.nominal) || 0);
+                    return diff !== 0 ? diff : (b.idTransaksi || '').localeCompare(a.idTransaksi || '');
+                });
+            } else if (filterMetode === 'nominalTertinggi') {
+                reportData.sort((a, b) => {
+                    const diff = (parseInt(b.nominal) || 0) - (parseInt(a.nominal) || 0);
+                    return diff !== 0 ? diff : (b.idTransaksi || '').localeCompare(a.idTransaksi || '');
+                });
+            } else {
+                reportData.sort((a, b) => (b.idTransaksi || '').localeCompare(a.idTransaksi || ''));
+            }
 
             if(reportData.length === 0) {
                 alert('Tidak ada data untuk dicetak.');
@@ -737,15 +767,18 @@
                 
                 // Ekstrak HANYA ANGKA dari nama paket
                 let mbps = 0;
-                if (client.paket) {
-                    const match = client.paket.match(/\d+/);
-                    if (match) mbps = parseInt(match[0]);
+                const paketStr = client.paket || tx.paket || '';
+                if (paketStr) {
+                    const match = paketStr.match(/\d+/);
+                    if (match) mbps = parseInt(match[0], 10);
                 }
+                if (!mbps && client.mbps) mbps = parseInt(client.mbps, 10) || 0;
+                if (!mbps && tx.mbps) mbps = parseInt(tx.mbps, 10) || 0;
                 
                 const nominal = parseInt(tx.nominal) || 0;
                 let cash = 0;
                 let tf = 0;
-                const metode = (tx.metode || '').toUpperCase();
+                const metode = (tx.metode || '').trim().toUpperCase();
                 if (metode === 'CASH') cash = nominal;
                 if (metode === 'TRANSFER' || metode === 'TF') tf = nominal;
                 
@@ -753,8 +786,8 @@
                 const bph = nominal * 0.0175;
                 const pph = nominal * 0.02;
                 
-                const noHp = client.noWa || '-';
-                const ket = client.detailAlamat || '-';
+                const noHp = client.noWa || client.noHp || tx.noWa || '-';
+                const ket = client.detailAlamat || client.alamat || tx.detailAlamat || '-';
                 
                 // Format tanggal YYYY-MM-DD ke DD-MM-YYYY jika memungkinkan
                 let tglFmt = tx.tanggalTransaksi || '-';
@@ -766,7 +799,7 @@
                 return {
                     tgl: tglFmt,
                     biaya: nominal,
-                    nama: tx.namaClient || '-',
+                    nama: tx.namaClient || client.namaClient || '-',
                     id: tx.idClient || '-',
                     noHp: noHp,
                     mbps: mbps,
@@ -779,19 +812,80 @@
                 };
             });
 
-            // TAHAP 2: LOGIKA CHUNKING (PAGINASI 30 BARIS)
+            // TAHAP 2: HITUNG TOTAL KESELURUHAN (GLOBAL TOTAL UNTUK SEMUA HALAMAN)
+            let allTotalBiaya = 0;
+            let allTotalMbps = 0;
+            let allTotalCash = 0;
+            let allTotalTf = 0;
+            let allTotalPpn = 0;
+            let allTotalBph = 0;
+            let allTotalPph = 0;
+
+            formattedData.forEach(row => {
+                allTotalBiaya += row.biaya;
+                allTotalMbps += row.mbps;
+                allTotalCash += row.cash;
+                allTotalTf += row.tf;
+                allTotalPpn += row.ppn;
+                allTotalBph += row.bph;
+                allTotalPph += row.pph;
+            });
+
+            const allTotalBayar = allTotalCash + allTotalTf;
+            const allTotalPajak = allTotalPpn + allTotalBph + allTotalPph;
+            const allNetTotal = allTotalBayar - allTotalPajak;
+
+            // TAHAP 3: LOGIKA CHUNKING (PAGINASI 30 BARIS)
             const chunkedData = [];
             for (let i = 0; i < formattedData.length; i += 30) {
                 chunkedData.push(formattedData.slice(i, i + 30));
             }
 
-            const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+            const formatRupiah = (num) => 'Rp ' + Math.round(num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
-            const userArea = localStorage.getItem('userArea') || 'SEMUA AREA';
-            const periodeBulan = filterMonth || 'Semua Periode';
-            const periodeText = filterMonth ? `PERIODE ${filterMonth}` : 'PERIODE SEMUA WAKTU';
+            // FORMAT PERIODE & AREA
+            const monthNames = [
+                'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
+                'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'
+            ];
+            let periodeFormatted = 'SEMUA WAKTU';
+            if (filterMonth && filterMonth !== 'Semua') {
+                if (filterMonth.includes('-')) {
+                    const p = filterMonth.split('-');
+                    if (p.length === 2) {
+                        const y = p[0];
+                        const mIdx = parseInt(p[1], 10) - 1;
+                        if (mIdx >= 0 && mIdx < 12) {
+                            periodeFormatted = `${monthNames[mIdx]} ${y}`;
+                        } else {
+                            periodeFormatted = filterMonth.toUpperCase();
+                        }
+                    } else {
+                        periodeFormatted = filterMonth.toUpperCase();
+                    }
+                } else {
+                    periodeFormatted = filterMonth.toUpperCase();
+                }
+            }
+
+            const roleQ = localStorage.getItem('userRole') || '';
+            const areaQ = localStorage.getItem('userArea') || '';
+            let areaVal = 'SEMUA AREA';
+            if (roleQ === 'master' || roleQ === 'masteradmin') {
+                if (filterArea && filterArea !== 'Semua') {
+                    areaVal = filterArea.toUpperCase();
+                } else {
+                    areaVal = 'SEMUA AREA';
+                }
+            } else if (areaQ) {
+                areaVal = areaQ.toUpperCase();
+            } else if (filterArea && filterArea !== 'Semua') {
+                areaVal = filterArea.toUpperCase();
+            }
+
+            const periodeBulan = periodeFormatted || filterMonth || 'Semua Periode';
             
-            // TAHAP 3: RENDERING HTML & CSS PAGE-BREAK
+            // TAHAP 4: RENDERING HTML & CSS PAGE-BREAK
             let html = `
             <!DOCTYPE html>
             <html lang="id">
@@ -803,18 +897,22 @@
                         size: landscape;
                         margin: 10mm;
                     }
-                    body { font-family: Arial, sans-serif; margin: 20px; font-size: 10px; }
-                    .page-break { page-break-after: always; margin-bottom: 30px; }
-                    .header-title { text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 20px; text-transform: uppercase; }
-                    .info-section { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 10px; }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    body { font-family: Arial, sans-serif; margin: 20px; font-size: 10px; color: #000; }
+                    .page-break { page-break-after: always; page-break-inside: avoid; margin-bottom: 30px; }
+                    .header-container { margin-bottom: 8px; }
+                    .header-title { text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 4px; text-transform: uppercase; }
+                    .info-section { display: flex; justify-content: space-between; font-weight: bold; font-size: 10px; }
                     table { width: 100%; border-collapse: collapse; text-align: center; }
                     th, td { border: 1px solid black; padding: 4px; height: 18px; white-space: nowrap; }
                     th { background-color: #d9d9d9; font-weight: bold; font-size: 9px; }
                     td { font-size: 9px; }
-                    .footer-branding { font-size: 9px; color: #555; text-align: right; margin-top: 10px; font-style: italic; }
                     @media print {
-                        body { margin: 0; }
-                        .page-break { page-break-after: always; margin-bottom: 0; }
+                        body { margin: 0; padding: 0; }
+                        .page-break { page-break-after: always; page-break-inside: avoid; margin-bottom: 0; }
                     }
                 </style>
             </head>
@@ -826,17 +924,18 @@
             chunkedData.forEach((chunk, index) => {
                 html += `
                 <div class="${index < chunkedData.length - 1 ? 'page-break' : ''}">
-                    <div class="header-title">LAPORAN TRANSAKSI BULANAN</div>
-                    
-                    <div class="info-section">
-                        <div>${periodeText.toUpperCase()}</div>
-                        <div>AREA ${userArea.toUpperCase()}</div>
+                    <div class="header-container">
+                        <div class="header-title">LAPORAN TRANSAKSI BULANAN</div>
+                        <div class="info-section">
+                            <div>PERIODE ${periodeFormatted}</div>
+                            <div>AREA ${areaVal}</div>
+                        </div>
                     </div>
 
                     <table>
                         <thead>
                             <tr>
-                                <th rowspan="2">NO</th>
+                                <th rowspan="2" style="width: 30px;">NO</th>
                                 <th colspan="6">IDENTITAS KLIENT</th>
                                 <th colspan="2">PEMBAYARAN</th>
                                 <th colspan="3">PAJAK</th>
@@ -859,24 +958,7 @@
                         <tbody>
                 `;
 
-                // TAHAP 4: FORMATTING ANGKA & TABEL BODY
-                let sumBiaya = 0;
-                let sumMbps = 0;
-                let sumCash = 0;
-                let sumTf = 0;
-                let sumPpn = 0;
-                let sumBph = 0;
-                let sumPph = 0;
-
                 chunk.forEach(row => {
-                    sumBiaya += row.biaya;
-                    sumMbps += row.mbps;
-                    sumCash += row.cash;
-                    sumTf += row.tf;
-                    sumPpn += row.ppn;
-                    sumBph += row.bph;
-                    sumPph += row.pph;
-
                     html += `
                         <tr>
                             <td>${globalCounter++}</td>
@@ -896,21 +978,25 @@
                     `;
                 });
 
-                // TAHAP 3: TABEL FOOTER (TOTAL PER HALAMAN)
                 html += `
                         </tbody>
                         <tfoot>
                             <tr style="font-weight: bold; background-color: #d9d9d9;">
-                                <td colspan="2"></td>
-                                <td style="text-align:right;">${formatRupiah(sumBiaya)}</td>
-                                <td colspan="3"></td>
-                                <td>${sumMbps}</td>
-                                <td style="text-align:right;">${formatRupiah(sumCash)}</td>
-                                <td style="text-align:right;">${formatRupiah(sumTf)}</td>
-                                <td style="text-align:right;">${formatRupiah(sumPpn)}</td>
-                                <td style="text-align:right;">${formatRupiah(sumBph)}</td>
-                                <td style="text-align:right;">${formatRupiah(sumPph)}</td>
-                                <td></td>
+                                <td colspan="6" style="text-align: center;">SUB TOTAL</td>
+                                <td>${allTotalMbps}</td>
+                                <td style="text-align:right;">${formatRupiah(allTotalCash)}</td>
+                                <td style="text-align:right;">${formatRupiah(allTotalTf)}</td>
+                                <td style="text-align:right;">${formatRupiah(allTotalPpn)}</td>
+                                <td style="text-align:right;">${formatRupiah(allTotalBph)}</td>
+                                <td style="text-align:right;">${formatRupiah(allTotalPph)}</td>
+                                <td style="text-align:center; font-size: 8px;">GRAND TOTAL - PAJAK</td>
+                            </tr>
+                            <tr style="font-weight: bold; background-color: #d9d9d9;">
+                                <td colspan="6" style="text-align: center;">GRAND TOTAL</td>
+                                <td>MBPS</td>
+                                <td colspan="2" style="text-align:center;">${formatRupiah(allTotalBayar)}</td>
+                                <td colspan="3" style="text-align:center;">${formatRupiah(allTotalPajak)}</td>
+                                <td style="text-align:center; font-size: 13px; font-weight: bold; background-color: #ffffff;">${formatRupiah(allNetTotal)}</td>
                             </tr>
                         </tfoot>
                     </table>
