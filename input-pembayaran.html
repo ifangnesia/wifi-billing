@@ -16,6 +16,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
@@ -509,7 +510,7 @@
         const btnSimpan = document.getElementById('btn-simpan');
         const inputBukti = document.getElementById('input-bukti');
 
-        btnSimpan.addEventListener('click', function(e) {
+        btnSimpan.addEventListener('click', async function(e) {
             e.preventDefault();
             
             const selectedId = inputNama.value;
@@ -523,107 +524,306 @@
             }
 
             if (!selectedId || !nominal || !area) {
-                alert('Pilih pelanggan dan area terlebih dahulu!');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Data Belum Lengkap',
+                    text: 'Pilih pelanggan dan area terlebih dahulu!',
+                    confirmButtonColor: '#9333ea'
+                });
                 return;
             }
 
             if (metode === 'Transfer' && inputBukti.files.length === 0) {
-                alert('Silakan upload bukti pembayaran!');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Bukti Pembayaran Kosong',
+                    text: 'Silakan upload bukti pembayaran!',
+                    confirmButtonColor: '#9333ea'
+                });
                 return;
             }
 
             const client = dataPelanggan.find(p => p.idClient === selectedId);
             if (!client) return;
 
-            // Generate ID Transaksi & Waktu
-            const timestamp = Date.now();
-            const idTransaksi = 'TRX-' + timestamp;
-            const dObj = new Date(timestamp);
-            
-            const tanggalTransaksi = dObj.toISOString().split('T')[0]; // YYYY-MM-DD
-            
-            // Extract Admin info
-            const adminName = localStorage.getItem('username') || 'Unknown';
+            btnSimpan.disabled = true;
+            btnSimpan.textContent = "Memeriksa...";
 
+            // Baca bukti file jika metode Transfer
+            let buktiBase64 = null;
+            if (metode === 'Transfer') {
+                try {
+                    const file = inputBukti.files[0];
+                    buktiBase64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => resolve(ev.target.result);
+                        reader.onerror = (ev) => reject(new Error('Gagal membaca file bukti'));
+                        reader.readAsDataURL(file);
+                    });
+                } catch (err) {
+                    btnSimpan.disabled = false;
+                    btnSimpan.textContent = "Simpan";
+                    Swal.fire('Error', 'Gagal memproses file bukti pembayaran', 'error');
+                    return;
+                }
+            }
+
+            // TAHAP 1: FUNGSI PENGECEKAN DOUBLE INPUT (FIRESTORE QUERY)
+            let existingTx = null;
+            try {
+                const snap = await db.collection('transaksi').where('idClient', '==', selectedId).get();
+                const now = new Date();
+                const curYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const isoYearMonth = now.toISOString().slice(0, 7);
+
+                snap.forEach(doc => {
+                    const tx = doc.data();
+                    if (tx.status !== 'Batal') {
+                        const tgl = tx.tanggalTransaksi || tx.tanggal_transaksi || '';
+                        if (tgl.startsWith(curYearMonth) || tgl.startsWith(isoYearMonth)) {
+                            if (!existingTx || (tx.timestamp && (!existingTx.timestamp || tx.timestamp > existingTx.timestamp))) {
+                                existingTx = tx;
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error cek double input: ", err);
+                btnSimpan.disabled = false;
+                btnSimpan.textContent = "Simpan";
+                Swal.fire('Error', 'Gagal memeriksa riwayat transaksi pelanggan.', 'error');
+                return;
+            }
+
+            let isDoubleInput = false;
+
+            if (existingTx) {
+                // TAHAP 2: PERINGATAN & KONFIRMASI (SWEETALERT2)
+                let tglSebelumnya = existingTx.tanggalTransaksi || existingTx.tanggal_transaksi || '-';
+                try {
+                    const parts = tglSebelumnya.split('-');
+                    if (parts.length === 3) {
+                        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                        tglSebelumnya = `${parseInt(parts[2], 10)} ${months[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
+                    }
+                } catch (e) {}
+
+                btnSimpan.disabled = false;
+                btnSimpan.textContent = "Simpan";
+
+                const konfirmasi = await Swal.fire({
+                    title: 'Peringatan Double Input!',
+                    text: `Klien ini sudah diinput pada ${tglSebelumnya}. Apakah Anda yakin ingin melakukan double input (bayar bulan depan)?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#9333ea',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Lanjut',
+                    cancelButtonText: 'Tidak, Batal',
+                    allowOutsideClick: false
+                });
+
+                if (!konfirmasi.isConfirmed) {
+                    return; // Batalkan proses
+                }
+
+                // TAHAP 3: INPUT NOMOR HP & KIRIM OTP (FONNTE API)
+                const { value: nomorSales } = await Swal.fire({
+                    title: 'Otorisasi Double Input',
+                    text: 'Silakan masukkan nomor WhatsApp Anda untuk menerima kode OTP otorisasi:',
+                    input: 'text',
+                    inputPlaceholder: 'Nomor WhatsApp Anda',
+                    showCancelButton: true,
+                    confirmButtonColor: '#9333ea',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Kirim OTP',
+                    cancelButtonText: 'Batal',
+                    allowOutsideClick: false,
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'Nomor WhatsApp wajib diisi!';
+                        }
+                        const cleaned = value.replace(/[^0-9]/g, '');
+                        if (cleaned.length < 9) {
+                            return 'Nomor WhatsApp minimal 9 digit angka!';
+                        }
+                    }
+                });
+
+                if (!nomorSales) {
+                    return; // Batal
+                }
+
+                let targetWA = nomorSales.trim().replace(/[^0-9]/g, '');
+                if (targetWA.startsWith('0')) targetWA = '62' + targetWA.slice(1);
+
+                // Generate 4 digit angka OTP acak di memori variabel lokal
+                const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+
+                Swal.fire({
+                    title: 'Mengirim Kode OTP...',
+                    text: 'Menghubungkan ke layanan WhatsApp...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                try {
+                    const FONNTE_TOKEN = "9cKNttPvb2Fhe8kC5KBR";
+                    const pesanOtp = `Kode OTP Otorisasi Double Input Anda adalah: ${otpCode}. Jangan berikan kode ini kepada siapapun. Pastikan sudah melakukan konfirmasi kepada MASTER ADMIN terkait double input`;
+                    
+                    const res = await fetch('https://api.fonnte.com/send', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': FONNTE_TOKEN,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            target: targetWA,
+                            message: pesanOtp,
+                            countryCode: '62'
+                        })
+                    });
+                    const resJson = await res.json().catch(() => ({}));
+                    if (!res.ok || resJson.status === false) {
+                        throw new Error(resJson.reason || 'Respon Fonnte menyatakan gagal');
+                    }
+                } catch (err) {
+                    console.error('Error Fonnte OTP:', err);
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal Mengirim OTP',
+                        text: `Gagal mengirim kode OTP ke WhatsApp: ${err.message || 'Kesalahan jaringan'}. Silakan coba lagi.`,
+                        confirmButtonColor: '#9333ea'
+                    });
+                    return;
+                }
+
+                // TAHAP 4: VALIDASI OTP & FINALISASI
+                const { value: inputOtp } = await Swal.fire({
+                    title: 'Masukkan Kode OTP',
+                    text: `Kode OTP telah dikirimkan ke nomor WhatsApp ${targetWA}. Masukkan 4 digit kode OTP:`,
+                    input: 'text',
+                    inputPlaceholder: '4 Digit Kode OTP',
+                    showCancelButton: true,
+                    confirmButtonColor: '#9333ea',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Verifikasi & Simpan',
+                    cancelButtonText: 'Batal',
+                    allowOutsideClick: false,
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'Kode OTP wajib diisi!';
+                        }
+                    }
+                });
+
+                if (!inputOtp) {
+                    return; // Batal
+                }
+
+                if (inputOtp.trim() !== otpCode) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Verifikasi Gagal',
+                        text: 'OTP Salah, proses dibatalkan.',
+                        confirmButtonColor: '#d33'
+                    });
+                    return;
+                }
+
+                isDoubleInput = true;
+            }
+
+            // SIMPAN TRANSAKSI
             btnSimpan.disabled = true;
             btnSimpan.textContent = "Menyimpan...";
 
-            const prosesSimpan = async (buktiBase64) => {
-                try {
-                    await db.collection('transaksi').add({
-                        idTransaksi: idTransaksi,
-                        tanggalTransaksi: tanggalTransaksi,
-                        timestamp: timestamp, // presisi
-                        idClient: client.idClient,
-                        namaClient: client.nama,
-                        odp: client.odp,
-                        nominal: parseInt(nominal),
-                        metode: metode,
-                        bukti: buktiBase64,
-                        status: 'Lunas',
-                        area: area,
-                        admin: adminName,
-                        previousJatuhTempo: client.jatuhTempo || ''
-                    });
+            const timestamp = Date.now();
+            const idTransaksi = 'TRX-' + timestamp;
+            const dObj = new Date(timestamp);
+            const tanggalTransaksi = dObj.toISOString().split('T')[0];
+            const adminName = localStorage.getItem('username') || 'Unknown';
 
-                    // Update Jatuh Tempo (+1 bulan)
-                    let jtDate = new Date(client.jatuhTempo || Date.now());
-                    jtDate.setMonth(jtDate.getMonth() + 1);
-                    const newJt = jtDate.toISOString().split('T')[0];
+            try {
+                await db.collection('transaksi').add({
+                    idTransaksi: idTransaksi,
+                    tanggalTransaksi: tanggalTransaksi,
+                    timestamp: timestamp,
+                    idClient: client.idClient,
+                    namaClient: client.nama,
+                    odp: client.odp,
+                    nominal: parseInt(nominal),
+                    metode: metode,
+                    bukti: buktiBase64,
+                    status: 'Lunas',
+                    area: area,
+                    admin: adminName,
+                    previousJatuhTempo: client.jatuhTempo || ''
+                });
+
+                // Update Jatuh Tempo (+1 bulan)
+                let jtDate = new Date(client.jatuhTempo || Date.now());
+                jtDate.setMonth(jtDate.getMonth() + 1);
+                const newJt = jtDate.toISOString().split('T')[0];
+                
+                const jtDateOnly = new Date(newJt);
+                jtDateOnly.setHours(0,0,0,0);
+                const todayDateOnly = new Date();
+                todayDateOnly.setHours(0,0,0,0);
+                const newStatus = (todayDateOnly > jtDateOnly) ? "Isolir" : "Aktif";
+
+                await db.collection('pelanggan').doc(client.idDoc).update({
+                    jatuhTempo: newJt,
+                    status: newStatus,
+                    isIsolir: false
+                });
+
+                // Kirim WA Lunas via Fonnte ke Pelanggan
+                if (client.noWa) {
+                    let formattedNumber = client.noWa.trim();
+                    if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.slice(1);
                     
-                    const jtDateOnly = new Date(newJt);
-                    jtDateOnly.setHours(0,0,0,0);
-                    const todayDateOnly = new Date();
-                    todayDateOnly.setHours(0,0,0,0);
-                    const newStatus = (todayDateOnly > jtDateOnly) ? "Isolir" : "Aktif";
-    
-                    await db.collection('pelanggan').doc(client.idDoc).update({
-                        jatuhTempo: newJt,
-                        status: newStatus,
-                        isIsolir: false
-                    });
-
-                    // Kirim WA Lunas via Fonnte
-                    if (client.noWa) {
-                        let formattedNumber = client.noWa.trim();
-                        if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.slice(1);
-                        
-                        const formatRp = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-                        const pesanLunas = `Halo Kak ${client.nama},\n\nTerima kasih! Pembayaran untuk layanan internet Anda telah berhasil kami terima dan verifikasi oleh sistem.\n\nRincian transaksi Anda:\n· ID Client: ${client.idClient}\n· Paket Langganan: ${client.paket || '-'}\n· Nominal Dibayar: ${formatRp(nominal)}\n· Status: LUNAS (Aktif hingga periode berikutnya)\n\nNota/Invoice resmi transaksi ini dapat Anda unduh atau cetak langsung melalui sistem portal pelanggan kami.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 👉 https://wifi-billing-two.vercel.app/form-ticket.html\n\nSelamat menikmati kembali koneksi internet cepat dari kami!\n\nIfangsnesia Customer Care`;
-                        
-                        try {
-                            const FONNTE_TOKEN = "9cKNttPvb2Fhe8kC5KBR";
-                            await fetch('https://api.fonnte.com/send', {
-                                method: 'POST',
-                                headers: { 'Authorization': FONNTE_TOKEN, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ target: formattedNumber, message: pesanLunas, countryCode: '62' })
-                            });
-                        } catch (e) {
-                            console.error("Gagal mengirim WA Lunas:", e);
-                        }
+                    const formatRp = (num) => 'Rp ' + parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                    const pesanLunas = `Halo Kak ${client.nama},\n\nTerima kasih! Pembayaran untuk layanan internet Anda telah berhasil kami terima dan verifikasi oleh sistem.\n\nRincian transaksi Anda:\n· ID Client: ${client.idClient}\n· Paket Langganan: ${client.paket || '-'}\n· Nominal Dibayar: ${formatRp(nominal)}\n· Status: LUNAS (Aktif hingga periode berikutnya)\n\nNota/Invoice resmi transaksi ini dapat Anda unduh atau cetak langsung melalui sistem portal pelanggan kami.\n\nJika ada kendala, segera isi form komplain melalui link berikut: 👉 https://wifi-billing-two.vercel.app/form-ticket.html\n\nSelamat menikmati kembali koneksi internet cepat dari kami!\n\nIfangsnesia Customer Care`;
+                    
+                    try {
+                        const FONNTE_TOKEN = "9cKNttPvb2Fhe8kC5KBR";
+                        await fetch('https://api.fonnte.com/send', {
+                            method: 'POST',
+                            headers: { 'Authorization': FONNTE_TOKEN, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ target: formattedNumber, message: pesanLunas, countryCode: '62' })
+                        });
+                    } catch (e) {
+                        console.error("Gagal mengirim WA Lunas:", e);
                     }
-
-                    btnSimpan.disabled = false;
-                    btnSimpan.textContent = "Simpan";
-                    tutupModal();
-                    alert('Pembayaran berhasil dicatat & WA telah terkirim!');
-                } catch (error) {
-                    console.error("Error saving payment: ", error);
-                    btnSimpan.disabled = false;
-                    btnSimpan.textContent = "Simpan";
-                    alert("Gagal memproses pembayaran");
                 }
-            };
 
-            if (metode === 'Transfer') {
-                const file = inputBukti.files[0];
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    prosesSimpan(evt.target.result);
-                };
-                reader.readAsDataURL(file);
-            } else {
-                prosesSimpan(null);
+                btnSimpan.disabled = false;
+                btnSimpan.textContent = "Simpan";
+                tutupModal();
+
+                if (isDoubleInput) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: 'Otorisasi Berhasil, Data Disimpan',
+                        confirmButtonColor: '#9333ea'
+                    });
+                } else {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: 'Pembayaran berhasil dicatat & WA telah terkirim!',
+                        confirmButtonColor: '#9333ea'
+                    });
+                }
+            } catch (error) {
+                console.error("Error saving payment: ", error);
+                btnSimpan.disabled = false;
+                btnSimpan.textContent = "Simpan";
+                Swal.fire('Error', 'Gagal memproses pembayaran: ' + error.message, 'error');
             }
         });
 
