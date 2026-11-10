@@ -16,8 +16,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
+        .ts-control {
+            border-radius: 0.5rem !important;
+            padding: 0.5rem 1rem !important;
+            border-color: #d1d5db !important;
+            font-size: 0.875rem !important;
+        }
+        .ts-dropdown {
+            border-radius: 0.5rem !important;
+            z-index: 60 !important;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -270,6 +282,12 @@
                         <label for="input-area" class="block text-sm font-medium text-gray-700 mb-1">Area</label>
                         <!-- Render via JS based on role -->
                     </div>
+                    <div>
+                        <label for="input-rt-rw" class="block text-sm font-medium text-gray-700 mb-1">Wilayah RT/RW (Koordinator)</label>
+                        <select id="input-rt-rw" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="">-- Pilih atau Ketik RT/RW --</option>
+                        </select>
+                    </div>
                     <div class="space-y-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Titik Lokasi Peta</label>
@@ -379,6 +397,10 @@
                 <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-3">
                     <div class="font-medium text-gray-500">Area</div>
                     <div class="col-span-2 font-semibold text-gray-800" id="detail-area">-</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-3">
+                    <div class="font-medium text-gray-500">Wilayah RT/RW</div>
+                    <div class="col-span-2 text-gray-800" id="detail-rt-rw">-</div>
                 </div>
                 <div class="grid grid-cols-3 gap-2 border-b border-gray-100 pb-3">
                     <div class="font-medium text-gray-500">ODP</div>
@@ -672,7 +694,45 @@
             container.innerHTML = `<label for="input-area" class="block text-sm font-medium text-gray-700 mb-1">Area</label>` + htmlArea;
         }
 
+        function generateOpsiRTRW() {
+            const opsi = [];
+            for (let rw = 1; rw <= 30; rw++) {
+                const rwStr = String(rw).padStart(2, '0');
+                for (let rt = 1; rt <= 16; rt++) {
+                    const rtStr = String(rt).padStart(2, '0');
+                    opsi.push(`RT ${rtStr} - RW ${rwStr}`);
+                }
+            }
+            return opsi;
+        }
+
+        function initDropdownRTRW() {
+            const selectEl = document.getElementById('input-rt-rw');
+            if (!selectEl) return;
+
+            if (!window.tomSelectRTRW) {
+                selectEl.innerHTML = '<option value="">-- Pilih atau Ketik RT/RW --</option>';
+                const listRTRW = generateOpsiRTRW();
+                listRTRW.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item;
+                    opt.textContent = item;
+                    selectEl.appendChild(opt);
+                });
+
+                window.tomSelectRTRW = new TomSelect("#input-rt-rw", {
+                    create: false,
+                    maxOptions: 500,
+                    sortField: false,
+                    placeholder: "-- Pilih atau Ketik RT/RW --",
+                    allowEmptyOption: true
+                });
+            }
+        }
+        initDropdownRTRW();
+
         function openModal() {
+            initDropdownRTRW();
             modal.classList.remove('hidden');
             const editId = document.getElementById('editIdClient').value;
             if(!editId) {
@@ -680,6 +740,7 @@
                 document.getElementById('longitudePelanggan').value = '';
                 document.getElementById('alamatPelanggan').value = '';
                 if(document.getElementById('map-search')) document.getElementById('map-search').value = '';
+                if(window.tomSelectRTRW) window.tomSelectRTRW.clear();
                 initMap(DEFAULT_COORD[0], DEFAULT_COORD[1]);
                 renderAreaInput('');
             } else {
@@ -695,6 +756,7 @@
             document.getElementById('latitudePelanggan').value = '';
             document.getElementById('longitudePelanggan').value = '';
             document.getElementById('modalTitle').textContent = 'Tambah Pelanggan Baru';
+            if (window.tomSelectRTRW) window.tomSelectRTRW.clear();
         }
 
         btnTambah.addEventListener('click', () => {
@@ -882,6 +944,12 @@
                 document.getElementById('detail-nama').textContent = pelanggan.nama || '-';
                 document.getElementById('detail-wa').textContent = pelanggan.noWa || '-';
                 document.getElementById('detail-area').textContent = pelanggan.area || '-';
+                
+                // TAHAP 4: HANDLING LEGACY DATA & DETAIL PELANGGAN (READ)
+                const displayRTRW = pelanggan.rt_rw ? pelanggan.rt_rw : "-";
+                const elRTRW = document.getElementById('detail-rt-rw');
+                if (elRTRW) elRTRW.textContent = displayRTRW;
+
                 document.getElementById('detail-odp').textContent = pelanggan.odp ? 'ODP ' + pelanggan.odp : '-';
                 document.getElementById('detail-paket').textContent = pelanggan.paket || '-';
                 const harga = getHargaPaket(pelanggan);
@@ -947,6 +1015,23 @@
                 document.getElementById('input-odp').value = pelanggan.odp;
                 document.getElementById('input-paket').value = pelanggan.paket;
                 document.getElementById('input-jatuh-tempo').value = pelanggan.jatuhTempo;
+                
+                // TAHAP 4: HANDLING LEGACY DATA & EDIT PELANGGAN
+                initDropdownRTRW();
+                const displayRTRW = (pelanggan.rt_rw && pelanggan.rt_rw !== '-') ? pelanggan.rt_rw : '';
+                if (window.tomSelectRTRW) {
+                    if (displayRTRW) {
+                        if (!window.tomSelectRTRW.options[displayRTRW]) {
+                            window.tomSelectRTRW.addOption({ value: displayRTRW, text: displayRTRW });
+                        }
+                        window.tomSelectRTRW.setValue(displayRTRW);
+                    } else {
+                        window.tomSelectRTRW.clear();
+                    }
+                } else {
+                    const selectEl = document.getElementById('input-rt-rw');
+                    if (selectEl) selectEl.value = displayRTRW;
+                }
                 
                 const editDropdown = document.getElementById('editInputStatus');
                 const statusContainerAwal = document.getElementById('container-status-awal');
@@ -1095,6 +1180,9 @@
             const lat = document.getElementById('latitudePelanggan').value;
             const lng = document.getElementById('longitudePelanggan').value;
             
+            const rtRwSelect = document.getElementById('input-rt-rw');
+            const rtRwVal = (rtRwSelect && rtRwSelect.value && rtRwSelect.value.trim() !== "") ? rtRwSelect.value.trim() : "-";
+            
             let area = document.getElementById('input-area') ? document.getElementById('input-area').value : '';
             if (localStorage.getItem('userRole') === 'sales') {
                 area = localStorage.getItem('userArea');
@@ -1129,7 +1217,8 @@
                     db.collection('pelanggan').doc(p.idDoc).update({
                         nama: nama, noWa: wa, alamat: alamat, detailAlamat: detailAlamat,
                         area: area, latitude: lat, longitude: lng, odp: odp,
-                        paket: paket, nominalPaket: nominalPaket, jatuhTempo: jatuhTempo, status: statusDB
+                        paket: paket, nominalPaket: nominalPaket, jatuhTempo: jatuhTempo, status: statusDB,
+                        rt_rw: rtRwVal
                     }).then(() => closeModal()).catch((err) => {
                         console.error(err); alert("Gagal update data");
                     });
@@ -1150,7 +1239,8 @@
                 db.collection('pelanggan').add({
                     idClient: idClient, nama: nama, noWa: wa, alamat: alamat, detailAlamat: detailAlamat,
                     area: area, latitude: lat, longitude: lng, odp: odp, paket: paket,
-                    nominalPaket: nominalPaket, jatuhTempo: jatuhTempo, status: statusDB, isIsolir: false, isInactive: false
+                    nominalPaket: nominalPaket, jatuhTempo: jatuhTempo, status: statusDB, isIsolir: false, isInactive: false,
+                    rt_rw: rtRwVal
                 }).then(() => closeModal()).catch((err) => {
                     console.error(err); alert("Gagal menambah data");
                 });
@@ -1252,74 +1342,167 @@
                 });
             }
             
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('landscape');
-            
-            doc.setFontSize(18);
-            doc.setFont("helvetica", "bold");
-            const title = "LIST DATA KLIENT";
-            const titleWidth = doc.getStringUnitWidth(title) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-            const xOffset = (doc.internal.pageSize.width - titleWidth) / 2;
-            doc.text(title, xOffset, 15);
-            
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "normal");
-            doc.text(`TOTAL KLIENT : ${totalKlient}`, 14, 25);
-            
-            const tableData = dataToPrint.map(data => {
-                let jtStr = '';
-                if (data.jatuhTempo) {
-                    const d = new Date(data.jatuhTempo);
-                    jtStr = d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth()+1).toString().padStart(2, '0') + '/' + d.getFullYear();
+            // Header Area Info
+            const roleQ = localStorage.getItem('userRole') || '';
+            const areaQ = localStorage.getItem('userArea') || '';
+            let areaVal = 'SEMUA AREA';
+            if (roleQ === 'master' || roleQ === 'masteradmin') {
+                areaVal = 'SEMUA AREA';
+            } else if (areaQ && areaQ !== 'Semua Area') {
+                areaVal = `AREA ${areaQ.toUpperCase()}`;
+            }
+
+            // Render Table Rows
+            let tableRowsHtml = '';
+            dataToPrint.forEach((p, idx) => {
+                let jtStr = '-';
+                if (p.jatuhTempo) {
+                    const d = new Date(p.jatuhTempo);
+                    if (!isNaN(d.getTime())) {
+                        jtStr = d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth() + 1).toString().padStart(2, '0') + '/' + d.getFullYear();
+                    } else {
+                        jtStr = p.jatuhTempo;
+                    }
                 }
-                const harga = getHargaPaket(data);
+                const harga = getHargaPaket(p);
                 const hargaStr = harga > 0 ? formatRupiah(harga) : '-';
                 
-                return [
-                    "",
-                    data.idClient || "",
-                    hargaStr,
-                    data.nama || "",
-                    data.noWa || "",
-                    data.area || "",
-                    data.odp ? "ODP " + data.odp : "",
-                    data.paket || "",
-                    jtStr,
-                    data.detailAlamat || ""
-                ];
-            });
-            
-            doc.autoTable({
-                startY: 30,
-                head: [['BOX', 'ID CLIENT', 'HARGA', 'NAMA PELANGGAN', 'NO WA', 'AREA', 'NO ODP', 'PAKET LANGGANAN', 'JATUH TEMPO', 'DETAIL ALAMAT']],
-                body: tableData,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [211, 211, 211],
-                    textColor: [0, 0, 0],
-                    lineWidth: 0.1,
-                    lineColor: [0, 0, 0]
-                },
-                styles: {
-                    lineWidth: 0.1,
-                    lineColor: [0, 0, 0],
-                    valign: 'middle'
-                },
-                columnStyles: {
-                    0: { cellWidth: 12, halign: 'center' },
-                    1: { cellWidth: 26, halign: 'center' },
-                    2: { cellWidth: 25, halign: 'center' },
-                    3: { cellWidth: 35 },
-                    4: { cellWidth: 30, halign: 'center' },
-                    5: { cellWidth: 15, halign: 'center' },
-                    6: { cellWidth: 18, halign: 'center' },
-                    7: { cellWidth: 38 },
-                    8: { cellWidth: 25, halign: 'center' },
-                    9: { cellWidth: 'auto' }
+                let odpStr = '-';
+                if (p.odp) {
+                    odpStr = String(p.odp).trim();
+                    if (!odpStr.toUpperCase().startsWith('ODP')) {
+                        odpStr = 'ODP ' + odpStr;
+                    }
                 }
+                const wilayahStr = p.rt_rw && p.rt_rw !== '-' ? p.rt_rw : '-';
+
+                tableRowsHtml += `
+                    <tr>
+                        <td class="text-center nowrap">${idx + 1}</td>
+                        <td class="text-center nowrap">${jtStr}</td>
+                        <td class="text-center nowrap">${p.idClient || '-'}</td>
+                        <td class="text-right nowrap">${hargaStr}</td>
+                        <td class="text-left">${p.nama || '-'}</td>
+                        <td class="text-center nowrap">${p.noWa || p.noHp || '-'}</td>
+                        <td class="text-center nowrap">${p.area || '-'}</td>
+                        <td class="text-center nowrap">${wilayahStr}</td>
+                        <td class="text-center nowrap">${odpStr}</td>
+                        <td class="text-left">${p.detailAlamat || '-'}</td>
+                    </tr>
+                `;
             });
+
+            const html = `
+            <!DOCTYPE html>
+            <html lang="id">
+            <head>
+                <meta charset="UTF-8">
+                <title>List Data Klient - ${areaVal}</title>
+                <style>
+                    @page {
+                        size: portrait;
+                        margin: 6mm 5mm;
+                    }
+                    * {
+                        box-sizing: border-box;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    body {
+                        font-family: Arial, Helvetica, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        color: #000;
+                        background: #fff;
+                    }
+                    .print-title {
+                        text-align: center;
+                        font-size: 15px;
+                        font-weight: bold;
+                        margin-bottom: 8px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .top-info {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-end;
+                        margin-bottom: 4px;
+                        font-size: 11px;
+                        font-weight: bold;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        table-layout: auto;
+                        font-size: 9px;
+                        line-height: 1.1;
+                    }
+                    thead {
+                        display: table-header-group;
+                    }
+                    tbody tr {
+                        page-break-inside: avoid;
+                    }
+                    th, td {
+                        border: 1px solid #333;
+                        padding: 1.5px 3px;
+                        vertical-align: middle;
+                    }
+                    td.text-left {
+                        word-break: break-word;
+                    }
+                    th {
+                        background-color: #d9d9d9 !important;
+                        font-weight: bold;
+                        text-align: center;
+                        font-size: 9px;
+                        padding: 3px 3px;
+                        white-space: nowrap;
+                    }
+                    .text-center { text-align: center; }
+                    .text-left { text-align: left; }
+                    .text-right { text-align: right; }
+                    .nowrap { white-space: nowrap; }
+                </style>
+            </head>
+            <body>
+                <div class="print-title">LIST DATA KLIENT</div>
+                <div class="top-info">
+                    <div>TOTAL KLIENT : ${totalKlient}</div>
+                    <div>${areaVal}</div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>NO</th>
+                            <th>TGL TEMPO</th>
+                            <th>ID CLIENT</th>
+                            <th>HARGA</th>
+                            <th>NAMA</th>
+                            <th>NO HP</th>
+                            <th>AREA</th>
+                            <th>WILAYAH</th>
+                            <th>NO ODP</th>
+                            <th>DETAIL ALAMAT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRowsHtml}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+            `;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.document.title = `List Data Klient - ${areaVal}`;
             
-            window.open(doc.output('bloburl'), '_blank');
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
         }
 
         function exportCSV() {
